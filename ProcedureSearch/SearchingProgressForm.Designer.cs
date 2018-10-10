@@ -1,6 +1,6 @@
-﻿namespace WindowsFormsApplication1
+﻿namespace ProcedureSearch
 {
-    partial class Form1
+    partial class SearchingProgressForm
     {
         /// <summary>
         /// Required designer variable.
@@ -36,4 +36,3 @@
         #endregion
     }
 }
-
