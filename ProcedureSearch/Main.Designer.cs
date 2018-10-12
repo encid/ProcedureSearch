@@ -29,6 +29,7 @@ namespace ProcedureSearch
         /// </summary>
         private void InitializeComponent()
         {
+            this.components = new System.ComponentModel.Container();
             this.rt = new System.Windows.Forms.RichTextBox();
             this.tabPage3 = new System.Windows.Forms.TabPage();
             this.TPListGroupBox = new System.Windows.Forms.GroupBox();
@@ -44,6 +45,8 @@ namespace ProcedureSearch
             this.TPSerialEntryComboBox = new System.Windows.Forms.ComboBox();
             this.tabControl = new System.Windows.Forms.TabControl();
             this.tabPage1 = new System.Windows.Forms.TabPage();
+            this.bWorker = new System.ComponentModel.BackgroundWorker();
+            this.timer1 = new System.Windows.Forms.Timer(this.components);
             this.tabPage3.SuspendLayout();
             this.TPListGroupBox.SuspendLayout();
             this.TPSearchGroupBox.SuspendLayout();
@@ -84,16 +87,17 @@ namespace ProcedureSearch
             this.TPListGroupBox.Size = new System.Drawing.Size(502, 203);
             this.TPListGroupBox.TabIndex = 1;
             this.TPListGroupBox.TabStop = false;
-            this.TPListGroupBox.Text = "groupBox2";
+            this.TPListGroupBox.Text = "Test Procedure";
             // 
             // TPArchivedLabel
             // 
             this.TPArchivedLabel.AutoSize = true;
             this.TPArchivedLabel.Location = new System.Drawing.Point(353, 144);
             this.TPArchivedLabel.Name = "TPArchivedLabel";
-            this.TPArchivedLabel.Size = new System.Drawing.Size(35, 13);
+            this.TPArchivedLabel.Size = new System.Drawing.Size(52, 13);
             this.TPArchivedLabel.TabIndex = 6;
-            this.TPArchivedLabel.Text = "label1";
+            this.TPArchivedLabel.Text = "Archived!";
+            this.TPArchivedLabel.Visible = false;
             // 
             // TPOpenButton
             // 
@@ -139,13 +143,14 @@ namespace ProcedureSearch
             // 
             // TPResultsListBox
             // 
+            this.TPResultsListBox.DisplayMember = "Name";
             this.TPResultsListBox.FormattingEnabled = true;
             this.TPResultsListBox.Location = new System.Drawing.Point(15, 19);
             this.TPResultsListBox.Name = "TPResultsListBox";
             this.TPResultsListBox.Size = new System.Drawing.Size(470, 108);
             this.TPResultsListBox.TabIndex = 0;
+            this.TPResultsListBox.ValueMember = "FullName";
             this.TPResultsListBox.DoubleClick += new System.EventHandler(this.TPOpenButton_Click);
-            this.TPResultsListBox.KeyDown += new System.Windows.Forms.KeyEventHandler(this.TPResultsListBox_KeyDown);
             // 
             // TPSearchGroupBox
             // 
@@ -156,7 +161,7 @@ namespace ProcedureSearch
             this.TPSearchGroupBox.Size = new System.Drawing.Size(502, 58);
             this.TPSearchGroupBox.TabIndex = 1;
             this.TPSearchGroupBox.TabStop = false;
-            this.TPSearchGroupBox.Text = "groupBox1";
+            this.TPSearchGroupBox.Text = "Serial Number, Product Code, or Assembly";
             // 
             // TPSearchButton
             // 
@@ -175,6 +180,7 @@ namespace ProcedureSearch
             this.TPSerialEntryComboBox.Name = "TPSerialEntryComboBox";
             this.TPSerialEntryComboBox.Size = new System.Drawing.Size(279, 21);
             this.TPSerialEntryComboBox.TabIndex = 0;
+            this.TPSerialEntryComboBox.TextChanged += new System.EventHandler(this.TPSerialEntryComboBox_TextChanged);
             // 
             // tabControl
             // 
@@ -196,6 +202,18 @@ namespace ProcedureSearch
             this.tabPage1.Text = "Process Sheets";
             this.tabPage1.UseVisualStyleBackColor = true;
             // 
+            // bWorker
+            // 
+            this.bWorker.WorkerReportsProgress = true;
+            this.bWorker.WorkerSupportsCancellation = true;
+            this.bWorker.DoWork += new System.ComponentModel.DoWorkEventHandler(this.bWorker_DoWork);
+            this.bWorker.RunWorkerCompleted += new System.ComponentModel.RunWorkerCompletedEventHandler(this.bWorker_RunWorkerCompleted);
+            // 
+            // timer1
+            // 
+            this.timer1.Enabled = true;
+            this.timer1.Tick += new System.EventHandler(this.timer1_Tick);
+            // 
             // Main
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -204,8 +222,10 @@ namespace ProcedureSearch
             this.Controls.Add(this.rt);
             this.Controls.Add(this.tabControl);
             this.Name = "Main";
+            this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.Text = "Procedure Search";
             this.Load += new System.EventHandler(this.Main_Load);
+            this.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.Main_KeyPress);
             this.tabPage3.ResumeLayout(false);
             this.TPListGroupBox.ResumeLayout(false);
             this.TPListGroupBox.PerformLayout();
@@ -231,6 +251,8 @@ namespace ProcedureSearch
         private TabControl tabControl;
         private TabPage tabPage1;
         private Label TPArchivedLabel;
+        private System.ComponentModel.BackgroundWorker bWorker;
+        private Timer timer1;
     }
 }
 

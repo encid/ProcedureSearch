@@ -20,20 +20,55 @@ namespace ProcedureSearch
     { 
         public string VAULT_PATH = ConfigurationManager.AppSettings["VAULT_PATH"];
         public string IID_DATABASE_PATH = ConfigurationManager.AppSettings["IID_DATABASE_PATH"];
+        SearchingProgressForm SearchingForm = new SearchingProgressForm();
 
+        class Product
+        {
+            public string Assembly { get; set; }
+            public List<string> ProcedureList { get; set; }
+
+            public Product(string assembly, List<string> procedureList)
+            {
+                Assembly = assembly;
+                ProcedureList = procedureList;
+            }
+        }
+        
         public Main()
         {
             InitializeComponent();
+            InitializeEventHandlers();            
+        }
+
+        private void InitializeEventHandlers()
+        {
+            rt.TextChanged += (sender, e) => {
+                if (rt.Visible)
+                    rt.ScrollToCaret();
+            };
+            this.KeyPreview = true;
         }
 
         private void Main_Load(object sender, EventArgs e)
         {
-            var SearchingProgressForm = new SearchingProgressForm();
-            SearchingProgressForm.Hide();
+            SearchingForm.Hide();
 
             Logger.Log("Program loaded, ready to search.", rt);
 
             TPSerialEntryComboBox.Select();
+        }
+
+        /// <summary>
+        /// Performs an action safely the appropriate thread.
+        /// </summary>
+        /// <param name="a">Action to perform.</param>
+        private void ExecuteSecure(Action a)
+        // Usage example: ExecuteSecure(() => this.someLabel.Text = "foo");
+        {
+            Invoke((MethodInvoker)delegate
+            {
+                a();
+            });
         }
 
         private void OpenFile(string FileName)
@@ -41,12 +76,12 @@ namespace ProcedureSearch
             try
             {
                 Logger.Log($"Opening test procedure {FileName}", rt);
-                var fi = (FileInfo)TPResultsListBox.SelectedItem;
+                var fi = new FileInfo(FileName);
                 Process.Start(fi.FullName);
             }
-            catch
+            catch (Exception ex)
             {
-
+                Logger.Log(ex.ToString(), rt);
             }
         }
 
@@ -75,46 +110,18 @@ namespace ProcedureSearch
             }
             catch (Exception ex)
             {
-                Logger.Log("An error occured while accessing the IID database: " + ex, rt, Color.Red);
+                ExecuteSecure(() => Logger.Log("An error has occured: " + ex.Message, rt, Color.Red));
                 return RetVal;
             }
         }
 
-        private List<string> findProcedures(string SerialNumber)
+        private List<string> FindProcedures(string SerialNumber)
         {
             List<string> ProcedureList = new List<string>();
-            bool gotFile = false;
-            Regex rx = new Regex("[^a-zA-Z0-9]");
             try
-            {
-                // clear textboxes
-                //lstProc.Items.Clear();
-                //txtProc.Clear();
-                //txtProd.Clear();
-                //txtDate.Clear();
-                // trim non-alphanumeric characters
-                var Serial = rx.Replace(SerialNumber, "");
-                // On Error Resume Next
-                // check length of barcode to determine validity
-                //if ((serial == ""))
-                //{
-                //    writeLog("Please scan or enter a serial number");
-                //    cboSerial.Focus();
-                //    cboSerial.SelectAll();
-                //    return;
-                //}
-
-                //if (((serial.Length == 1)
-                //            || (serial.Length == 2)))
-                //{
-                //    writeLog(("Invalid serial number: " + serialNumber));
-                //    cboSerial.Focus();
-                //    cboSerial.SelectAll();
-                //    return;
-                //}
-
+            {                
                 // get IID from serial numbers
-                var IID = Serial.Substring(0, 3);
+                var IID = SerialNumber.Substring(0, 3);
                 // Using the IID from serial number, find corresponding product number
                 var ProductNumber = GetProductFromIID(IID);
                 // get first 3 digits of product number to determine if final assy or sub assy
@@ -125,148 +132,65 @@ namespace ProcedureSearch
                 switch (ProdFirst3)
                 {
                     case "231":
-                    foreach (string currentFile in Directory.EnumerateFiles(@"\pandora\vault\Released_Part_Information\234-xxxxx_Assy_Test_Proc\Standard_Products\", ("*"
-                                    + (AssemblyNumber + "*")), System.IO.SearchOption.AllDirectories))
+                    foreach (string file in Directory.EnumerateFiles($@"\\pandora\vault\Released_Part_Information\234-xxxxx_Assy_Test_Proc\Standard_Products\234-{AssemblyNumber.Substring(0, 5)}", 
+                                                                    ("*" + AssemblyNumber + "*"), System.IO.SearchOption.AllDirectories))
                     {
-                        FileInfo f = new FileInfo(currentFile);
-                        // check for duplicate files in listbox, and if no duplicates exist, add the file
+                        // check for duplicate files in list, and if no duplicates exist, add the file
                         // Also, check for archive, and do NOT add archived files to list.
-                        if (((lstProc.FindStringExact(Path.GetFileName(f.FullName)) == -1)
-                                    && (f.FullName.ToLower().Contains("archive") == false)))
+                        if (!ProcedureList.Contains(file) && (file.ToLower().Contains("archive") == false))
                         {
-                            lstProc.Items.Add(f);
+                            ProcedureList.Add(file);
                         }
-
-                        if ((lstProc.Items.Count > 0))
-                        {
-                            gotFile = true;
-                        }
-
                     }
 
-                    if ((gotFile == true))
-                    {
-                        writeLog(("Found procedure for ["+ (IID + ("] product number " + prod))));
-                        txtProd.Text = prod;
-                        cboSerial.SelectAll();
-                        lstProc.SelectedIndex = 0;
-                        lstProc.Focus();
-                    }
-                    else if ((gotFile == false))
-                    {
-                        foreach (string currentFile in Directory.EnumerateFiles("\\\\ares\\shared\\Operations\\Test Engineering\\Documents ready for release", ("*"
-                                        + (AssemblyNumber + "*")), SearchOption.TopDirectoryOnly))
+                    if (!ProcedureList.Any())
+                    {                     
+                        foreach (string file in Directory.EnumerateFiles($@"\\ares\shared\Operations\Test Engineering\Documents ready for release",
+                                                                               ("*" + AssemblyNumber + "*"), System.IO.SearchOption.TopDirectoryOnly))
                         {
-                            FileInfo f = new FileInfo(currentFile);
                             // check for duplicate files in listbox, and if no duplicates exist, add the file
-                            if ((lstProc.FindStringExact(Path.GetFileName(f.FullName)) == -1))
+                            if (!ProcedureList.Contains(file))
                             {
-                                lstProc.Items.Add(f);
+                                ProcedureList.Add(file);
                             }
-
-                            gotFile = true;
                         }
-
-                        if ((gotFile == true))
-                        {
-                            WriteLog(string.Format("Found non-released procedure for [{0}] product number {1}", IID, prod));
-                            txtProd.Text = prod;
-                            cboSerial.SelectAll();
-                            lstProc.SelectedIndex = 0;
-                            lstProc.Focus();
-                        }
-                        else if ((gotFile == false))
-                        {
-                            writeLog(("Procedure not found for ["
-                                            + (IID + ("] product number " + prod))));
-                            cboSerial.Focus();
-                            cboSerial.SelectAll();
-                        }
-
                     }
+                    return ProcedureList;
 
-                    break;
                     case "216":
-                    foreach (string currentFile in Directory.EnumerateFiles("\\\\pandora\\vault\\Released_Part_Information\\225-xxxxx_Proc_Mfg_Test", ("*"
-                                    + (AssemblyNumber + "*")), SearchOption.AllDirectories))
+                    foreach (string file in Directory.EnumerateFiles($@"\\pandora\vault\Released_Part_Information\225-xxxxx_Proc_Mfg_Test\",
+                                                                    ("*" + (AssemblyNumber + "*")), System.IO.SearchOption.AllDirectories))
                     {
-                        FileInfo f = new FileInfo(currentFile);
-                        // check for duplicate files in listbox, and if no duplicates exist, add the file
+                        // check for duplicate files in list, and if no duplicates exist, add the file
                         // Also, check for archive, and do NOT add archived files to list.
-                        if (((lstProc.FindStringExact(Path.GetFileName(f.FullName)) == -1)
-                                    && (f.FullName.ToLower().Contains("archive") == false)))
+                        if (!ProcedureList.Contains(file) && (file.ToLower().Contains("archive") == false))
                         {
-                            lstProc.Items.Add(f);
+                            ProcedureList.Add(file);
                         }
-
-                        if ((lstProc.Items.Count > 0))
-                        {
-                            gotFile = true;
-                        }
-
                     }
 
-                    if ((gotFile == true))
+                    if (!ProcedureList.Any())
                     {
-                        writeLog(("Found procedure for ["
-                                        + (IID + ("] product number " + prod))));
-                        txtProd.Text = prod;
-                        cboSerial.SelectAll();
-                        lstProc.SelectedIndex = 0;
-                        lstProc.Focus();
-                    }
-                    else if ((gotFile == false))
-                    {
-                        foreach (string currentFile in Directory.EnumerateFiles("\\\\ares\\shared\\Operations\\Test Engineering\\Documents ready for release", ("*"
-                                        + (AssemblyNumber + "*")), SearchOption.TopDirectoryOnly))
+                        foreach (string file in Directory.EnumerateFiles($@"\\ares\shared\Operations\Test Engineering\Documents ready for release",
+                                                                               ("*" + (AssemblyNumber + "*")), System.IO.SearchOption.TopDirectoryOnly))
                         {
-                            FileInfo f = new FileInfo(currentFile);
-                            // check for duplicate files in listbox, and if no duplicates, add the file
-                            if ((lstProc.FindStringExact(Path.GetFileName(f.FullName)) == -1))
+                            // check for duplicate files in listbox, and if no duplicates exist, add the file
+                            if (!ProcedureList.Contains(file))
                             {
-                                lstProc.Items.Add(f);
+                                ProcedureList.Add(file);
                             }
-
-                            gotFile = true;
                         }
-
-                        if ((gotFile == true))
-                        {
-                            writeLog(("Found non-released procedure for ["
-                                            + (IID + ("] product number " + prod))));
-                            txtProd.Text = prod;
-                            cboSerial.SelectAll();
-                            lstProc.SelectedIndex = 0;
-                            lstProc.Focus();
-                        }
-                        else if ((gotFile == false))
-                        {
-                            writeLog(("Procedure not found for ["
-                                            + (IID + ("] product number " + prod))));
-                            cboSerial.Focus();
-                            cboSerial.SelectAll();
-                        }
-                        System.Data.OleDb.OleDbEnumerator.
                     }
-                    break;
+                    return ProcedureList;
                     default:
-                    writeLog(("Procedure not found for ["
-                                    + (IID + ("] product number " + prod))));
-                    cboSerial.Focus();
-                    cboSerial.SelectAll();
-                    return;
-                    Errorcatch:
-                    writeLog("An error has occured");
-                    cboSerial.Focus();
-                    cboSerial.SelectAll();
-                    break;
+                    return ProcedureList;
                 }
             }
             catch (Exception ex)
             {
-                return;
+                ExecuteSecure(() => Logger.Log("An error has occured: " + ex.Message, rt, Color.Red));
+                return ProcedureList;
             }
-
         }
 
         private void TPOpenButton_Click(object sender, EventArgs e)
@@ -293,30 +217,109 @@ namespace ProcedureSearch
             OpenFile(TPResultsListBox.SelectedItem.ToString());
         }
 
-        private void TPResultsListBox_KeyDown(object sender, KeyEventArgs e)
+        private void TPSearchButton_Click(object sender, EventArgs e)
         {
-            if (e.KeyCode == Keys.Enter && TPResultsListBox.Items.Count > 0)
+            if (bWorker.IsBusy) return;
+                        
+            TPResultsListBox.Items.Clear();
+            Regex rx = new Regex("[^a-zA-Z0-9]");
+            var Serial = TPSerialEntryComboBox.Text;
+            Serial = rx.Replace(TPSerialEntryComboBox.Text, "");
+            
+            if (Serial.Length < 3)
             {
-                TPOpenButton_Click(sender, e);
+                Logger.Log("Invalid serial number entered.", rt);
+                return;
+            }
+
+            if (!TPSerialEntryComboBox.Items.Contains(TPSerialEntryComboBox.Text))
+            {
+                TPSerialEntryComboBox.Items.Add(TPSerialEntryComboBox.Text);
+            }
+
+            TPSerialEntryComboBox.SelectAll();
+            this.Enabled = false;
+            SearchingForm.Show();
+            bWorker.RunWorkerAsync(TPSerialEntryComboBox.Text);
+        }
+
+        private void Main_KeyPress(object sender, KeyPressEventArgs e)
+        {
+            if (this.Enabled == false) return;
+
+            if (tabControl.SelectedTab.Text == "Test Procedures")
+            {
+                if (TPResultsListBox.Focused || e.KeyChar == (char)Keys.Enter)
+                {
+                    TPSearchButton.PerformClick();
+                    e.Handled = true;
+                    return;
+                }
+                if (e.KeyChar == '[')
+                {
+                    TPSerialEntryComboBox.SelectAll();
+                    e.KeyChar = (char)Keys.None;
+                }
+                if (e.KeyChar == ']')
+                {
+                    e.KeyChar = (char)Keys.None;
+                    TPSearchButton.PerformClick();
+                    return;
+                }
+                if (!TPSerialEntryComboBox.Focused)
+                {
+                    TPSerialEntryComboBox.Focus();
+                    TPSerialEntryComboBox.Text = e.KeyChar.ToString();
+                    TPSerialEntryComboBox.SelectionStart = TPSerialEntryComboBox.Text.Length;
+                    e.Handled = true;
+                }
+            }
+
+            if (tabControl.SelectedTab.Name == "Process Sheets")
+            {
+
             }
         }
 
-        private void TPSearchButton_Click(object sender, EventArgs e)
+        private void bWorker_DoWork(object sender, DoWorkEventArgs e)
         {
-            string Provider = "Provider=Microsoft.Jet.OLEDB.4.0;Data Source=";            
-            var ConnString = (Provider + @"S:\Operations\Test Engineering\FASTSeek\ProductCodesMaster.mdb");
-            var DbConnection = new OleDbConnection { ConnectionString = ConnString };
-            DbConnection.Open();
-            var SqlStr = $@"SELECT * FROM ProductCode WHERE (ProductID = '{TPSerialEntryComboBox.Text}')";
-            var DbCmd = new OleDbCommand(SqlStr, DbConnection);
-            var DataReader = DbCmd.ExecuteReader();
-            while (DataReader.Read())
+            List<string> ProceduresList = FindProcedures((string)e.Argument);
+            e.Result = ProceduresList;
+        }
+
+        private void bWorker_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
+        {
+            this.Enabled = true;
+            
+            SearchingForm.Hide();
+            List<string> ProceduresList = (List<string>)e.Result;
+
+            if (!ProceduresList.Any())
             {
-                if (DataReader.GetValue(1).ToString() != "")
-                    {
-                    // if procedure exists, assign product number to string prod
-                    TPResultsListBox.Items.Add(DataReader.GetValue(1).ToString());
-                }
+                Logger.Log("No procedures found", rt);
+                return;
+            }
+
+            foreach (var p in ProceduresList)
+            {
+                var f = new FileInfo(p);
+                TPResultsListBox.Items.Add(f);
+            }
+        }
+
+        private void TPSerialEntryComboBox_TextChanged(object sender, EventArgs e)
+        {
+            TPSerialEntryComboBox.Text = TPSerialEntryComboBox.Text.ToUpper();
+            TPSerialEntryComboBox.SelectionStart = TPSerialEntryComboBox.Text.Length;
+        }
+
+        private void timer1_Tick(object sender, EventArgs e)
+        {
+            if (TPResultsListBox.Items.Count > 0)
+            {
+                var a = TPResultsListBox.Items[0].ToString();
+                a = a.Substring(a.Length - 18, 18);
+                TPFilenameTextbox.Text = a;
             }
         }
     }

@@ -12,7 +12,8 @@ namespace ProcedureSearch
         /// <param name="message">Message to write to the status log.</param>
         /// <param name="box">RichTextBox control to use for writing</param>
         public static void Log(string message, RichTextBox box)
-        {
+        {            
+
             if (string.IsNullOrEmpty(box.Text))
             {
                 box.AppendText(message, Color.Black);
