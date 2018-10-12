@@ -29,7 +29,6 @@ namespace ProcedureSearch
         /// </summary>
         private void InitializeComponent()
         {
-            this.components = new System.ComponentModel.Container();
             this.rt = new System.Windows.Forms.RichTextBox();
             this.tabPage3 = new System.Windows.Forms.TabPage();
             this.TPListGroupBox = new System.Windows.Forms.GroupBox();
@@ -46,7 +45,6 @@ namespace ProcedureSearch
             this.tabControl = new System.Windows.Forms.TabControl();
             this.tabPage1 = new System.Windows.Forms.TabPage();
             this.bWorker = new System.ComponentModel.BackgroundWorker();
-            this.timer1 = new System.Windows.Forms.Timer(this.components);
             this.tabPage3.SuspendLayout();
             this.TPListGroupBox.SuspendLayout();
             this.TPSearchGroupBox.SuspendLayout();
@@ -209,11 +207,6 @@ namespace ProcedureSearch
             this.bWorker.DoWork += new System.ComponentModel.DoWorkEventHandler(this.bWorker_DoWork);
             this.bWorker.RunWorkerCompleted += new System.ComponentModel.RunWorkerCompletedEventHandler(this.bWorker_RunWorkerCompleted);
             // 
-            // timer1
-            // 
-            this.timer1.Enabled = true;
-            this.timer1.Tick += new System.EventHandler(this.timer1_Tick);
-            // 
             // Main
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -252,7 +245,6 @@ namespace ProcedureSearch
         private TabPage tabPage1;
         private Label TPArchivedLabel;
         private System.ComponentModel.BackgroundWorker bWorker;
-        private Timer timer1;
     }
 }
 

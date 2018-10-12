@@ -24,12 +24,12 @@ namespace ProcedureSearch
 
         class Product
         {
-            public string Assembly { get; set; }
+            public string ProductNumber { get; set; }
             public List<string> ProcedureList { get; set; }
 
-            public Product(string assembly, List<string> procedureList)
+            public Product(string productNumber, List<string> procedureList)
             {
-                Assembly = assembly;
+                ProductNumber = productNumber;
                 ProcedureList = procedureList;
             }
         }
@@ -115,7 +115,7 @@ namespace ProcedureSearch
             }
         }
 
-        private List<string> FindProcedures(string SerialNumber)
+        private Product FindProcedures(string SerialNumber)
         {
             List<string> ProcedureList = new List<string>();
             try
@@ -155,7 +155,7 @@ namespace ProcedureSearch
                             }
                         }
                     }
-                    return ProcedureList;
+                    return new Product(ProductNumber, ProcedureList);
 
                     case "216":
                     foreach (string file in Directory.EnumerateFiles($@"\\pandora\vault\Released_Part_Information\225-xxxxx_Proc_Mfg_Test\",
@@ -181,15 +181,15 @@ namespace ProcedureSearch
                             }
                         }
                     }
-                    return ProcedureList;
+                    return new Product(ProductNumber, ProcedureList);
                     default:
-                    return ProcedureList;
+                    return new Product(ProductNumber, ProcedureList);
                 }
             }
             catch (Exception ex)
             {
                 ExecuteSecure(() => Logger.Log("An error has occured: " + ex.Message, rt, Color.Red));
-                return ProcedureList;
+                return new Product(null, ProcedureList);
             }
         }
 
@@ -283,8 +283,8 @@ namespace ProcedureSearch
 
         private void bWorker_DoWork(object sender, DoWorkEventArgs e)
         {
-            List<string> ProceduresList = FindProcedures((string)e.Argument);
-            e.Result = ProceduresList;
+            var product = FindProcedures((string)e.Argument);
+            e.Result = product;
         }
 
         private void bWorker_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
@@ -292,8 +292,10 @@ namespace ProcedureSearch
             this.Enabled = true;
             
             SearchingForm.Hide();
-            List<string> ProceduresList = (List<string>)e.Result;
-
+            var product = (Product)e.Result;
+            string ProductNumber = product.ProductNumber;
+            List<string> ProceduresList = product.ProcedureList;
+            
             if (!ProceduresList.Any())
             {
                 Logger.Log("No procedures found", rt);
@@ -305,6 +307,7 @@ namespace ProcedureSearch
                 var f = new FileInfo(p);
                 TPResultsListBox.Items.Add(f);
             }
+            TPFilenameTextbox.Text = ProductNumber;
         }
 
         private void TPSerialEntryComboBox_TextChanged(object sender, EventArgs e)
