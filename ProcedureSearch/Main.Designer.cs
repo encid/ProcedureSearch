@@ -90,7 +90,7 @@ namespace ProcedureSearch
             // TPArchivedLabel
             // 
             this.TPArchivedLabel.AutoSize = true;
-            this.TPArchivedLabel.Location = new System.Drawing.Point(353, 144);
+            this.TPArchivedLabel.Location = new System.Drawing.Point(358, 144);
             this.TPArchivedLabel.Name = "TPArchivedLabel";
             this.TPArchivedLabel.Size = new System.Drawing.Size(52, 13);
             this.TPArchivedLabel.TabIndex = 6;
@@ -126,18 +126,18 @@ namespace ProcedureSearch
             this.TPDateLabel.AutoSize = true;
             this.TPDateLabel.Location = new System.Drawing.Point(53, 174);
             this.TPDateLabel.Name = "TPDateLabel";
-            this.TPDateLabel.Size = new System.Drawing.Size(35, 13);
+            this.TPDateLabel.Size = new System.Drawing.Size(33, 13);
             this.TPDateLabel.TabIndex = 2;
-            this.TPDateLabel.Text = "label2";
+            this.TPDateLabel.Text = "Date:";
             // 
             // TPFilenameLabel
             // 
             this.TPFilenameLabel.AutoSize = true;
             this.TPFilenameLabel.Location = new System.Drawing.Point(53, 140);
             this.TPFilenameLabel.Name = "TPFilenameLabel";
-            this.TPFilenameLabel.Size = new System.Drawing.Size(35, 13);
+            this.TPFilenameLabel.Size = new System.Drawing.Size(47, 13);
             this.TPFilenameLabel.TabIndex = 1;
-            this.TPFilenameLabel.Text = "label1";
+            this.TPFilenameLabel.Text = "Product:";
             // 
             // TPResultsListBox
             // 

@@ -110,7 +110,7 @@ namespace ProcedureSearch
             }
             catch (Exception ex)
             {
-                ExecuteSecure(() => Logger.Log("An error has occured: " + ex.Message, rt, Color.Red));
+                ExecuteSecure(() => Logger.Log("An error has occured in iid: " + ex.Message, rt, Color.Red));
                 return RetVal;
             }
         }
@@ -119,11 +119,15 @@ namespace ProcedureSearch
         {
             List<string> ProcedureList = new List<string>();
             try
-            {                
+            {
                 // get IID from serial numbers
                 var IID = SerialNumber.Substring(0, 3);
                 // Using the IID from serial number, find corresponding product number
                 var ProductNumber = GetProductFromIID(IID);
+                if (ProductNumber == "")
+                {
+                    return new Product(SerialNumber, ProcedureList);
+                }
                 // get first 3 digits of product number to determine if final assy or sub assy
                 var ProdFirst3 = ProductNumber.Substring(0, 3);
                 // remove first 4 characters of product number to get assembly number
@@ -132,7 +136,11 @@ namespace ProcedureSearch
                 switch (ProdFirst3)
                 {
                     case "231":
-                    foreach (string file in Directory.EnumerateFiles($@"\\pandora\vault\Released_Part_Information\234-xxxxx_Assy_Test_Proc\Standard_Products\234-{AssemblyNumber.Substring(0, 5)}", 
+                    if (!Directory.Exists($@"{VAULT_PATH}\Released_Part_Information\234-xxxxx_Assy_Test_Proc\Standard_Products\234-{AssemblyNumber.Substring(0, 5)}"))
+                    {
+                        return new Product(ProductNumber, ProcedureList);
+                    }
+                    foreach (string file in Directory.EnumerateFiles($@"{VAULT_PATH}\Released_Part_Information\234-xxxxx_Assy_Test_Proc\Standard_Products\234-{AssemblyNumber.Substring(0, 5)}", 
                                                                     ("*" + AssemblyNumber + "*"), System.IO.SearchOption.AllDirectories))
                     {
                         // check for duplicate files in list, and if no duplicates exist, add the file
@@ -158,7 +166,7 @@ namespace ProcedureSearch
                     return new Product(ProductNumber, ProcedureList);
 
                     case "216":
-                    foreach (string file in Directory.EnumerateFiles($@"\\pandora\vault\Released_Part_Information\225-xxxxx_Proc_Mfg_Test\",
+                    foreach (string file in Directory.EnumerateFiles($@"{VAULT_PATH}\Released_Part_Information\225-xxxxx_Proc_Mfg_Test\",
                                                                     ("*" + (AssemblyNumber + "*")), System.IO.SearchOption.AllDirectories))
                     {
                         // check for duplicate files in list, and if no duplicates exist, add the file
@@ -188,7 +196,7 @@ namespace ProcedureSearch
             }
             catch (Exception ex)
             {
-                ExecuteSecure(() => Logger.Log("An error has occured: " + ex.Message, rt, Color.Red));
+                ExecuteSecure(() => Logger.Log("An error has occured in findproc: " + ex.Message, rt, Color.Red));
                 return new Product(null, ProcedureList);
             }
         }
@@ -220,7 +228,7 @@ namespace ProcedureSearch
         private void TPSearchButton_Click(object sender, EventArgs e)
         {
             if (bWorker.IsBusy) return;
-                        
+
             TPResultsListBox.Items.Clear();
             Regex rx = new Regex("[^a-zA-Z0-9]");
             var Serial = TPSerialEntryComboBox.Text;
@@ -295,10 +303,11 @@ namespace ProcedureSearch
             var product = (Product)e.Result;
             string ProductNumber = product.ProductNumber;
             List<string> ProceduresList = product.ProcedureList;
-            
+            TPFilenameTextbox.Text = ProductNumber;
+
             if (!ProceduresList.Any())
             {
-                Logger.Log("No procedures found", rt);
+                Logger.Log($"No procedures found for {ProductNumber}", rt);
                 return;
             }
 
@@ -307,23 +316,12 @@ namespace ProcedureSearch
                 var f = new FileInfo(p);
                 TPResultsListBox.Items.Add(f);
             }
-            TPFilenameTextbox.Text = ProductNumber;
         }
 
         private void TPSerialEntryComboBox_TextChanged(object sender, EventArgs e)
         {
             TPSerialEntryComboBox.Text = TPSerialEntryComboBox.Text.ToUpper();
             TPSerialEntryComboBox.SelectionStart = TPSerialEntryComboBox.Text.Length;
-        }
-
-        private void timer1_Tick(object sender, EventArgs e)
-        {
-            if (TPResultsListBox.Items.Count > 0)
-            {
-                var a = TPResultsListBox.Items[0].ToString();
-                a = a.Substring(a.Length - 18, 18);
-                TPFilenameTextbox.Text = a;
-            }
-        }
+        }        
     }
 }
