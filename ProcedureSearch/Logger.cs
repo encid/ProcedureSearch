@@ -12,14 +12,14 @@ namespace ProcedureSearch
         /// <param name="message">Message to write to the status log.</param>
         /// <param name="box">RichTextBox control to use for writing</param>
         public static void Log(string message, RichTextBox box)
-        {            
-
+        {
+            var hms = String.Format("{0:hh:mm:sstt}", DateTime.Now);
             if (string.IsNullOrEmpty(box.Text))
             {
-                box.AppendText(message, Color.Black);
+                box.AppendText($"{hms} > {message} ", Color.Black);
             }
             else
-                box.AppendText(Environment.NewLine + message, Color.Black);
+                box.AppendText(Environment.NewLine + $"{hms} > {message}", Color.Black);
         }
 
         /// <summary>
@@ -30,12 +30,13 @@ namespace ProcedureSearch
         /// <param name="color">Foreground color of text.</param>
         public static void Log(string message, RichTextBox box, Color color)
         {
+            var hms = String.Format("{0:hh:mm:sstt}", DateTime.Now);
             if (string.IsNullOrEmpty(box.Text))
             {
-                box.AppendText(message, color);
+                box.AppendText($"{hms} > {message} ", color);
             }
             else
-                box.AppendText(Environment.NewLine + message, color);
+                box.AppendText(Environment.NewLine + $"{hms} > {message}", color);
         }
     }
 }
