@@ -63,7 +63,6 @@ namespace ProcedureSearch
             this.groupBox3 = new System.Windows.Forms.GroupBox();
             this.LookupSearchButton = new System.Windows.Forms.Button();
             this.LookupComboBox = new System.Windows.Forms.ComboBox();
-            this.backgroundWorker1 = new System.ComponentModel.BackgroundWorker();
             this.tabPage3.SuspendLayout();
             this.TPListGroupBox.SuspendLayout();
             this.TPSearchGroupBox.SuspendLayout();
@@ -141,7 +140,7 @@ namespace ProcedureSearch
             this.TPSearchGroupBox.Size = new System.Drawing.Size(502, 58);
             this.TPSearchGroupBox.TabIndex = 1;
             this.TPSearchGroupBox.TabStop = false;
-            this.TPSearchGroupBox.Text = "Enter Serial Number or Product Code";
+            this.TPSearchGroupBox.Text = "Scan Serial Number or Enter Part Number";
             // 
             // TPSearchButton
             // 
@@ -308,6 +307,7 @@ namespace ProcedureSearch
             this.PSResultsListBox.Size = new System.Drawing.Size(470, 108);
             this.PSResultsListBox.TabIndex = 0;
             this.PSResultsListBox.ValueMember = "FullName";
+            this.PSResultsListBox.DoubleClick += new System.EventHandler(this.PSOpenButton_Click);
             // 
             // groupBox2
             // 
@@ -318,7 +318,7 @@ namespace ProcedureSearch
             this.groupBox2.Size = new System.Drawing.Size(502, 58);
             this.groupBox2.TabIndex = 3;
             this.groupBox2.TabStop = false;
-            this.groupBox2.Text = "Enter Serial Number or Product Code";
+            this.groupBox2.Text = "Scan Serial Number or Enter Part Number";
             // 
             // PSSearchButton
             // 
@@ -356,6 +356,7 @@ namespace ProcedureSearch
             // 
             // SearchPSFromLookupButton
             // 
+            this.SearchPSFromLookupButton.Enabled = false;
             this.SearchPSFromLookupButton.Location = new System.Drawing.Point(398, 87);
             this.SearchPSFromLookupButton.Name = "SearchPSFromLookupButton";
             this.SearchPSFromLookupButton.Size = new System.Drawing.Size(92, 38);
@@ -366,6 +367,7 @@ namespace ProcedureSearch
             // 
             // SearchTPFromLookupButton
             // 
+            this.SearchTPFromLookupButton.Enabled = false;
             this.SearchTPFromLookupButton.Location = new System.Drawing.Point(300, 87);
             this.SearchTPFromLookupButton.Name = "SearchTPFromLookupButton";
             this.SearchTPFromLookupButton.Size = new System.Drawing.Size(92, 37);
@@ -377,6 +379,7 @@ namespace ProcedureSearch
             // label4
             // 
             this.label4.AutoSize = true;
+            this.label4.Enabled = false;
             this.label4.Location = new System.Drawing.Point(47, 100);
             this.label4.Name = "label4";
             this.label4.Size = new System.Drawing.Size(75, 13);
@@ -385,6 +388,7 @@ namespace ProcedureSearch
             // 
             // LookupCodeTextbox
             // 
+            this.LookupCodeTextbox.Enabled = false;
             this.LookupCodeTextbox.Location = new System.Drawing.Point(128, 96);
             this.LookupCodeTextbox.Name = "LookupCodeTextbox";
             this.LookupCodeTextbox.ReadOnly = true;
@@ -395,6 +399,7 @@ namespace ProcedureSearch
             // 
             this.groupBox3.Controls.Add(this.LookupSearchButton);
             this.groupBox3.Controls.Add(this.LookupComboBox);
+            this.groupBox3.Enabled = false;
             this.groupBox3.Location = new System.Drawing.Point(13, 12);
             this.groupBox3.Name = "groupBox3";
             this.groupBox3.Size = new System.Drawing.Size(502, 58);
@@ -486,7 +491,6 @@ namespace ProcedureSearch
         private GroupBox groupBox3;
         private Button LookupSearchButton;
         private ComboBox LookupComboBox;
-        private System.ComponentModel.BackgroundWorker backgroundWorker1;
     }
 }
 

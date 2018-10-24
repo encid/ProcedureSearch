@@ -83,7 +83,7 @@ namespace ProcedureSearch
         {
             try
             {
-                Logger.Log($"Opening test procedure {FileName}", rt);
+                Logger.Log($"Opening document {FileName}", rt);
                 var fi = new FileInfo(FileName);
                 Process.Start(fi.FullName);
             }
@@ -153,19 +153,24 @@ namespace ProcedureSearch
             }
         }
 
-        private Product FindProcedures(string SerialNumber)
+        private Product FindProcedures(string input, bool IsSerial)
         {
             List<string> DocumentList = new List<string>();
+            string ProductNumber;
             try
             {
-                // get IID from serial numbers
-                var IID = SerialNumber.Substring(0, 3);
-                // Using the IID from serial number, find corresponding product number
-                var ProductNumber = GetProductFromIID(IID);
+                ProductNumber = input;
+                if (IsSerial)
+                {
+                    // Using the IID (first 3 chars) from serial number, find corresponding product number
+                    ProductNumber = GetProductFromIID(input.Substring(0, 3));
+                }
+
                 if (ProductNumber == "")
                 {
-                    return new Product(SerialNumber, DocumentList);
+                    return new Product(input, DocumentList);
                 }
+                
                 // get first 3 digits of product number to determine if final assy or sub assy
                 var ProdFirst3 = ProductNumber.Substring(0, 3);
                 // remove first 4 characters of product number to get assembly number
@@ -239,21 +244,25 @@ namespace ProcedureSearch
             }
         }
 
-        private Product FindProcessSheets(string SerialNumber)
+        private Product FindProcessSheets(string input, bool IsSerial)
         {
             List<string> DocumentList = new List<string>();
             string ProductNumber;
             string dir;
             try
             {
-                // get IID from serial numbers
-                var IID = SerialNumber.Substring(0, 3);
-                // Using the IID from serial number, find corresponding product number
-                ProductNumber = GetProductFromIID(IID);
+                ProductNumber = input;
+                if (IsSerial)
+                {
+                    // Using the IID (first 3 chars) from serial number, find corresponding product number
+                    ProductNumber = GetProductFromIID(input.Substring(0, 3));
+                }
+                
                 if (ProductNumber == "")
                 {
-                    return new Product(SerialNumber, DocumentList);
+                    return new Product(input, DocumentList);
                 }
+
                 // get first 3 digits of product number to determine what type of part
                 var ProdFirst3 = ProductNumber.Substring(0, 3);
                 // remove first 4 characters of product number to get assembly number
@@ -302,33 +311,61 @@ namespace ProcedureSearch
                         break;
                     }
 
+                    case "516":
+                    {
+                        dir = ($@"{VAULT_PATH}\Operations_Documents\PROCESS SHEETS\516-xxxxx_Prototype_PCB\" + ProductNumber.Substring(0, 9));
+                        break;
+                    }
+
+                    case "531":
+                    {
+                        dir = ($@"{VAULT_PATH}\Operations_Documents\PROCESS SHEETS\531-xxxxx_Shipping_Final_Assy\" + ProductNumber.Substring(0, 9));
+                        break;
+                    }
+
+                    case "533":
+                    {
+                        dir = ($@"{VAULT_PATH}\Operations_Documents\PROCESS SHEETS\533-Prototype_Final_Assy\" + ProductNumber.Substring(0, 9));
+                        break;
+                    }
+
                     default:
                     {
                         return new Product(ProductNumber, DocumentList);
                     }
                 }
                 // get all pdfs matching part number
-                var files = dir.EnumerateFiles("*" + ProductNumber + "*" + ".pdf", SearchOption.AllDirectories);
+                var files = Directory.EnumerateFiles(dir, "*" + ProductNumber + "*" + ".pdf", SearchOption.AllDirectories);
                 if (files.Any() == false)
-                    files = dir.EnumerateFiles(ProductNumber.Substring(0, 9) + "-XX" + "*" + ".pdf", SearchOption.AllDirectories);
+                    files = Directory.EnumerateFiles(dir, ProductNumber.Substring(0, 9) + "-XX" + "*" + ".pdf", SearchOption.AllDirectories);
                 if (files.Any() == false)
-                    files = dir.EnumerateFiles(ProductNumber.Substring(0, 9) + "-ALL" + "*" + ".pdf", SearchOption.AllDirectories);
-                MessageBox.Show(files.OrderByDescending(f => f.LastWriteTime).FirstOrDefault().ToString());
-                DocumentList.Add(files.OrderByDescending(f => f.LastWriteTime).FirstOrDefault().ToString());
+                    files = Directory.EnumerateFiles(dir, ProductNumber.Substring(0, 9) + "-ALL" + "*" + ".pdf", SearchOption.AllDirectories);
+
+                var fi = new List<FileInfo>();
+                foreach (var f in files)
+                    fi.Add(new FileInfo(f));
+                DocumentList.Add(fi.OrderByDescending(f => f.LastWriteTime).FirstOrDefault().ToString());
 
                 return new Product(ProductNumber, DocumentList);
             }
-            catch
+            catch (Exception ex)
             {
+                ExecuteSecure(() => Logger.Log("An error has occured: " + ex.Message, rt, Color.Red));
                 return new Product(null, DocumentList);
             }            
         }
 
         private void TPOpenButton_Click(object sender, EventArgs e)
         {
-            if (TPResultsListBox.Items.Count == 0 || TPResultsListBox.SelectedItem == null)
+            if (TPResultsListBox.Items.Count == 0)
             {
                 Logger.Log("No procedure selected, enter a serial number and search.", rt, Color.Red);
+                return;
+            }
+
+            if (TPResultsListBox.Items.Count > 0 && TPResultsListBox.SelectedItem == null)
+            {
+                OpenFile(TPResultsListBox.Items[0].ToString());
                 return;
             }
 
@@ -457,7 +494,16 @@ namespace ProcedureSearch
 
         private void TPBWorker_DoWork(object sender, DoWorkEventArgs e)
         {
-            var product = FindProcedures((string)e.Argument);
+            Product product;
+            var input = (string)e.Argument;
+            if (input.Count(c => c == '-') >= 2)
+            {
+                product = FindProcedures((string)e.Argument, false);
+            }
+            else
+            {
+                product = FindProcedures((string)e.Argument, true);
+            }
             e.Result = product;
         }
 
@@ -482,11 +528,22 @@ namespace ProcedureSearch
                 var f = new FileInfo(p);
                 TPResultsListBox.Items.Add(f);
             }
+
+            Logger.Log($"Found procedures for {ProductNumber}", rt);
         }
 
         private void PSBWorker_DoWork(object sender, DoWorkEventArgs e)
         {
-            var product = FindProcessSheets((string)e.Argument);
+            Product product;
+            var input = (string)e.Argument;
+            if (input.Count(c => c == '-') >= 2)
+            {
+                product = FindProcessSheets((string)e.Argument, false);
+            }
+            else
+            {
+                product = FindProcessSheets((string)e.Argument, true);
+            }
             e.Result = product;
         }
 
@@ -511,6 +568,8 @@ namespace ProcedureSearch
                 var f = new FileInfo(p);
                 PSResultsListBox.Items.Add(f);
             }
+                        
+            Logger.Log($"Found process sheet for {ProductNumber}", rt);
         }
 
         private void TPSerialEntryComboBox_TextChanged(object sender, EventArgs e)
@@ -589,14 +648,19 @@ namespace ProcedureSearch
 
         private void PSOpenButton_Click(object sender, EventArgs e)
         {
-            if (PSResultsListBox.Items.Count == 0 || PSResultsListBox.SelectedItem == null)
+            if (PSResultsListBox.Items.Count == 0)
             {
                 Logger.Log("No process sheet selected, enter a serial number and search.", rt, Color.Red);
                 return;
             }
 
+            if (PSResultsListBox.Items.Count > 0 && PSResultsListBox.SelectedItem == null)
+            {
+                OpenFile(PSResultsListBox.Items[0].ToString());
+                return;
+            }
+
             var f = new FileInfo(PSResultsListBox.SelectedItem.ToString().ToLower());
-            MessageBox.Show(PSResultsListBox.SelectedItem.ToString());
             OpenFile(PSResultsListBox.SelectedItem.ToString());
         }
     }
