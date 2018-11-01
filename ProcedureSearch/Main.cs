@@ -16,9 +16,11 @@ namespace ProcedureSearch
     { 
         public string VAULT_PATH = ConfigurationManager.AppSettings["VAULT_PATH"];
         public string IID_DATABASE_PATH = ConfigurationManager.AppSettings["IID_DATABASE_PATH"];
+        public string LOGFILE_PATH = ConfigurationManager.AppSettings["LOGFILE_PATH"];
         SearchingProgressForm SearchingForm = new SearchingProgressForm();
         BackgroundWorker TPBWorker = new BackgroundWorker();
         BackgroundWorker PSBWorker = new BackgroundWorker();
+        List<string> cb1 = new List<string>();
 
         class Product
         {
@@ -40,6 +42,7 @@ namespace ProcedureSearch
 
         private void InitializeEventHandlers()
         {
+            // initialize backgroundworkers
             TPBWorker.WorkerReportsProgress = true;
             TPBWorker.WorkerSupportsCancellation = true;
             TPBWorker.DoWork += TPBWorker_DoWork;
@@ -61,7 +64,7 @@ namespace ProcedureSearch
         {
             SearchingForm.Hide();
 
-            Logger.Log("Program loaded, ready to search.", rt);
+            Logger.Log("Program loaded, ready to search.", rt, true);
 
             TPSerialEntryComboBox.Select();
         }
@@ -73,84 +76,91 @@ namespace ProcedureSearch
         private void ExecuteSecure(Action a)
         // Usage example: ExecuteSecure(() => this.someLabel.Text = "foo");
         {
-            Invoke((MethodInvoker)delegate
-            {
-                a();
-            });
+            Invoke((MethodInvoker)delegate { a(); });
         }
 
         private void OpenFile(string FileName)
         {
             try
             {
-                Logger.Log($"Opening document {FileName}", rt);
+                Logger.Log($"Opening document {FileName}", rt, true);
                 var fi = new FileInfo(FileName);
                 Process.Start(fi.FullName);
             }
             catch (Exception ex)
             {
-                Logger.Log(ex.ToString(), rt);
+                Logger.Log("Error: " + ex.Message, rt, Color.Red, true);
             }
         }
 
         private string GetProductFromIID(string IID)
         {
-            var RetVal = "";
-            string Provider = "Provider=Microsoft.Jet.OLEDB.4.0;Data Source=";
-            var ConnString = (Provider + IID_DATABASE_PATH);
-            var DbConnection = new OleDbConnection { ConnectionString = ConnString };
-            try
+            var product = "";
+            using (OleDbConnection conn = new OleDbConnection("Provider=Microsoft.Jet.OLEDB.4.0;Data Source=" + IID_DATABASE_PATH))
             {
-                DbConnection.Open();
-                var SqlStr = $@"SELECT * FROM ProductCode WHERE (ProductID = '{IID}')";
-                var DbCmd = new OleDbCommand(SqlStr, DbConnection);
-                var DataReader = DbCmd.ExecuteReader();
-                while (DataReader.Read())
+                try
                 {
-                    if (DataReader.GetValue(1).ToString() != "")
+                    conn.Open();
+                    var cmd = conn.CreateCommand();                    
+                    cmd.CommandText = $@"SELECT * FROM ProductCode WHERE (ProductID = @iid)";
+                    var param = cmd.Parameters.Add("iid", OleDbType.VarChar).Value = IID;
+                    var reader = cmd.ExecuteReader();
+                    while (reader.Read())
                     {
-                        RetVal = DataReader.GetValue(1).ToString();
-                    }                    
+                        //if (!reader.IsDBNull(1))
+                        if (reader.GetValue(1) != DBNull.Value)
+                        {
+                            product = reader.GetString(1); 
+                        }
+                    }
+                    conn.Close();
                 }
-                DbConnection.Close();
-                return RetVal;
-                              
+                catch (Exception ex)
+                {
+                    ExecuteSecure(() => Logger.Log("An error has occured with IID database: " + ex.Message, rt, Color.Red, true));
+                    return product;
+                }
+                finally
+                {
+                    conn.Close();
+                }
             }
-            catch (Exception ex)
-            {
-                ExecuteSecure(() => Logger.Log("An error has occured in iid: " + ex.Message, rt, Color.Red));
-                return RetVal;
-            }
+            return product;
         }
 
         private string GetIIDFromProduct(string product)
         {
-            var RetVal = "";
-            string Provider = "Provider=Microsoft.Jet.OLEDB.4.0;Data Source=";
-            var ConnString = (Provider + IID_DATABASE_PATH);
-            var DbConnection = new OleDbConnection { ConnectionString = ConnString };
-            try
+            var IID = "";
+            using (OleDbConnection conn = new OleDbConnection("Provider=Microsoft.Jet.OLEDB.4.0;Data Source=" + IID_DATABASE_PATH))
             {
-                DbConnection.Open();
-                var SqlStr = $@"SELECT * FROM ProductCode WHERE (Product = '{product}')";
-                var DbCmd = new OleDbCommand(SqlStr, DbConnection);
-                var DataReader = DbCmd.ExecuteReader();
-                while (DataReader.Read())
+                try
                 {
-                    if (DataReader.GetValue(0).ToString() != "")
+                    conn.Open();
+                    var cmd = conn.CreateCommand();
+                    cmd.CommandText = $@"SELECT * FROM ProductCode WHERE (Product = @product)";
+                    var param = cmd.Parameters.Add("iid", OleDbType.VarChar).Value = product;
+                    var reader = cmd.ExecuteReader();
+                    while (reader.Read())                    
                     {
-                        RetVal = DataReader.GetValue(0).ToString();
+                        //if (!reader.IsDBNull(0))
+                        if (reader.GetValue(0) != System.DBNull.Value)
+                        {
+                            IID = reader.GetString(0);
+                        }
                     }
+                    conn.Close();
                 }
-                DbConnection.Close();
-                return RetVal;
-
+                catch (Exception ex)
+                {
+                    ExecuteSecure(() => Logger.Log("An error has occured with IID database: " + ex.Message, rt, Color.Red, true));
+                    return IID;
+                }
+                finally
+                {
+                    conn.Close();
+                }
             }
-            catch (Exception ex)
-            {
-                ExecuteSecure(() => Logger.Log("An error has occured in IID: " + ex.Message, rt, Color.Red));
-                return RetVal;
-            }
+            return IID;
         }
 
         private Product FindProcedures(string input, bool IsSerial)
@@ -184,7 +194,7 @@ namespace ProcedureSearch
                         return new Product(ProductNumber, DocumentList);
                     }
                     foreach (string file in Directory.EnumerateFiles($@"{VAULT_PATH}\Released_Part_Information\234-xxxxx_Assy_Test_Proc\Standard_Products\234-{AssemblyNumber.Substring(0, 5)}", 
-                                                                    ("*" + AssemblyNumber + "*"), System.IO.SearchOption.AllDirectories))
+                                                                    ("*" + AssemblyNumber + "*"), SearchOption.AllDirectories))
                     {
                         // check for duplicate files in list, and if no duplicates exist, add the file
                         // Also, check for archive, and do NOT add archived files to list.
@@ -197,7 +207,7 @@ namespace ProcedureSearch
                     if (!DocumentList.Any())
                     {                     
                         foreach (string file in Directory.EnumerateFiles($@"\\ares\shared\Operations\Test Engineering\Documents ready for release",
-                                                                        ("*" + AssemblyNumber + "*"), System.IO.SearchOption.TopDirectoryOnly))
+                                                                        ("*" + AssemblyNumber + "*"), SearchOption.TopDirectoryOnly))
                         {
                             // check for duplicate files in listbox, and if no duplicates exist, add the file
                             if (!DocumentList.Contains(file))
@@ -239,7 +249,7 @@ namespace ProcedureSearch
             }
             catch (Exception ex)
             {
-                ExecuteSecure(() => Logger.Log("An error has occured: " + ex.Message, rt, Color.Red));
+                ExecuteSecure(() => Logger.Log("An error has occured: " + ex.Message, rt, Color.Red, true));
                 return new Product(null, DocumentList);
             }
         }
@@ -334,12 +344,20 @@ namespace ProcedureSearch
                         return new Product(ProductNumber, DocumentList);
                     }
                 }
+                // make sure dir exists
+                if (!Directory.Exists(dir))
+                {
+                    return new Product(ProductNumber, DocumentList);
+                }
+                MessageBox.Show(dir);
                 // get all pdfs matching part number
                 var files = Directory.EnumerateFiles(dir, "*" + ProductNumber + "*" + ".pdf", SearchOption.AllDirectories);
-                if (files.Any() == false)
+                if (!files.Any())
                     files = Directory.EnumerateFiles(dir, ProductNumber.Substring(0, 9) + "-XX" + "*" + ".pdf", SearchOption.AllDirectories);
-                if (files.Any() == false)
+                if (!files.Any())
                     files = Directory.EnumerateFiles(dir, ProductNumber.Substring(0, 9) + "-ALL" + "*" + ".pdf", SearchOption.AllDirectories);
+                if (!files.Any())
+                    return new Product(ProductNumber, DocumentList);
 
                 var fi = new List<FileInfo>();
                 foreach (var f in files)
@@ -350,8 +368,8 @@ namespace ProcedureSearch
             }
             catch (Exception ex)
             {
-                ExecuteSecure(() => Logger.Log("An error has occured: " + ex.Message, rt, Color.Red));
-                return new Product(null, DocumentList);
+                ExecuteSecure(() => Logger.Log("An error has occured: "+ ex.TargetSite + " - " + ex.Message, rt, Color.Red, true));
+                return new Product(input, DocumentList);
             }            
         }
 
@@ -359,13 +377,7 @@ namespace ProcedureSearch
         {
             if (TPResultsListBox.Items.Count == 0)
             {
-                Logger.Log("No procedure selected, enter a serial number and search.", rt, Color.Red);
-                return;
-            }
-
-            if (TPResultsListBox.Items.Count > 0 && TPResultsListBox.SelectedItem == null)
-            {
-                OpenFile(TPResultsListBox.Items[0].ToString());
+                Logger.Log("No procedure selected, enter a serial number and search.", rt, Color.Red, true);
                 return;
             }
 
@@ -389,6 +401,8 @@ namespace ProcedureSearch
         {
             if (TPBWorker.IsBusy) return;
 
+            TPFilenameTextbox.Clear();
+            TPDateTextbox.Clear();
             TPResultsListBox.Items.Clear();
             Regex rx = new Regex("[^a-zA-Z0-9]");
             var Serial = TPSerialEntryComboBox.Text;
@@ -396,13 +410,13 @@ namespace ProcedureSearch
             
             if (Serial.Length < 3)
             {
-                Logger.Log($"Invalid serial number entered.", rt);
+                Logger.Log($"Invalid serial number entered.", rt, true);
                 return;
             }
 
             if (!TPSerialEntryComboBox.Items.Contains(TPSerialEntryComboBox.Text))
             {
-                TPSerialEntryComboBox.Items.Add(TPSerialEntryComboBox.Text);
+                TPSerialEntryComboBox.Items.Insert(0, TPSerialEntryComboBox.Text);
             }
 
             TPSerialEntryComboBox.SelectAll();
@@ -417,7 +431,7 @@ namespace ProcedureSearch
 
             if (tabControl.SelectedTab.Text == "Test Procedures")
             {
-                if (TPResultsListBox.Focused || e.KeyChar == (char)Keys.Enter)
+                if (TPSerialEntryComboBox.Focused && e.KeyChar == (char)Keys.Enter)
                 {
                     TPSearchButton.PerformClick();
                     e.Handled = true;
@@ -446,7 +460,7 @@ namespace ProcedureSearch
 
             if (tabControl.SelectedTab.Text == "Process Sheets")
             {
-                if (PSResultsListBox.Focused || e.KeyChar == (char)Keys.Enter)
+                if (PSSerialEntryComboBox.Focused && e.KeyChar == (char)Keys.Enter)
                 {
                     PSSearchButton.PerformClick();
                     e.Handled = true;
@@ -519,7 +533,7 @@ namespace ProcedureSearch
 
             if (!ProceduresList.Any())
             {
-                Logger.Log($"No procedures found for {ProductNumber}", rt);
+                Logger.Log($"No procedures found for {ProductNumber}", rt, true);
                 return;
             }
 
@@ -529,8 +543,9 @@ namespace ProcedureSearch
                 TPResultsListBox.Items.Add(f);
             }
 
-            Logger.Log($"Found procedures for {ProductNumber}", rt);
-        }
+            TPResultsListBox.SelectedItem = TPResultsListBox.Items[0];
+            Logger.Log($"Found procedures for {ProductNumber}", rt, true);
+        }  
 
         private void PSBWorker_DoWork(object sender, DoWorkEventArgs e)
         {
@@ -559,7 +574,7 @@ namespace ProcedureSearch
 
             if (!ProceduresList.Any())
             {
-                Logger.Log($"No procedures found for {ProductNumber}", rt);
+                Logger.Log($"No process sheets found for {ProductNumber}", rt, true);
                 return;
             }
 
@@ -568,20 +583,23 @@ namespace ProcedureSearch
                 var f = new FileInfo(p);
                 PSResultsListBox.Items.Add(f);
             }
-                        
-            Logger.Log($"Found process sheet for {ProductNumber}", rt);
+
+            PSResultsListBox.SelectedItem = PSResultsListBox.Items[0];                        
+            Logger.Log($"Found process sheet for {ProductNumber}", rt, true);
         }
 
         private void TPSerialEntryComboBox_TextChanged(object sender, EventArgs e)
         {
+            var currPos = TPSerialEntryComboBox.SelectionStart;
             TPSerialEntryComboBox.Text = TPSerialEntryComboBox.Text.ToUpper();
-            TPSerialEntryComboBox.SelectionStart = TPSerialEntryComboBox.Text.Length;
+            TPSerialEntryComboBox.SelectionStart = currPos;
         }
 
         private void PSSerialEntryComboBox_TextChanged(object sender, EventArgs e)
         {
+            var currPos = PSSerialEntryComboBox.SelectionStart;
             PSSerialEntryComboBox.Text = PSSerialEntryComboBox.Text.ToUpper();
-            PSSerialEntryComboBox.SelectionStart = PSSerialEntryComboBox.Text.Length;
+            PSSerialEntryComboBox.SelectionStart = currPos;
         }
 
         private void LookupSearchButton_Click(object sender, EventArgs e)
@@ -595,11 +613,11 @@ namespace ProcedureSearch
             var IID = GetIIDFromProduct(LookupComboBox.Text);
             if (IID == "")
             {
-                Logger.Log($"Product code not found for assembly: {LookupComboBox.Text}", rt);
+                Logger.Log($"Product code not found for assembly: {LookupComboBox.Text}", rt, true);
                 this.Enabled = true;
                 return;
             }
-            Logger.Log($"Product code for assembly {LookupComboBox.Text} is: {IID}", rt);
+            Logger.Log($"Product code for assembly {LookupComboBox.Text} is: {IID}", rt, true);
             LookupCodeTextbox.Text = IID;
             this.Enabled = true;
         }
@@ -624,6 +642,8 @@ namespace ProcedureSearch
         {
             if (PSBWorker.IsBusy) return;
 
+            PSFileNameTextbox.Clear();
+            PSDateTextbox.Clear();
             PSResultsListBox.Items.Clear();
             Regex rx = new Regex("[^a-zA-Z0-9]");
             var Serial = PSSerialEntryComboBox.Text;
@@ -631,13 +651,13 @@ namespace ProcedureSearch
 
             if (Serial.Length < 3)
             {
-                Logger.Log($"Invalid serial number entered.", rt);
+                Logger.Log($"Invalid serial number entered.", rt, true);
                 return;
             }
 
             if (!PSSerialEntryComboBox.Items.Contains(PSSerialEntryComboBox.Text))
             {
-                TPSerialEntryComboBox.Items.Add(PSSerialEntryComboBox.Text);
+                PSSerialEntryComboBox.Items.Insert(0, PSSerialEntryComboBox.Text);
             }
 
             PSSerialEntryComboBox.SelectAll();
@@ -650,18 +670,26 @@ namespace ProcedureSearch
         {
             if (PSResultsListBox.Items.Count == 0)
             {
-                Logger.Log("No process sheet selected, enter a serial number and search.", rt, Color.Red);
-                return;
-            }
-
-            if (PSResultsListBox.Items.Count > 0 && PSResultsListBox.SelectedItem == null)
-            {
-                OpenFile(PSResultsListBox.Items[0].ToString());
+                Logger.Log("No process sheet selected, enter a serial number and search.", rt, Color.Red, true);
                 return;
             }
 
             var f = new FileInfo(PSResultsListBox.SelectedItem.ToString().ToLower());
             OpenFile(PSResultsListBox.SelectedItem.ToString());
+        }
+
+        private void TPResultsListBox_SelectedValueChanged(object sender, EventArgs e)
+        {
+            var f = new FileInfo(TPResultsListBox.SelectedItem.ToString());
+            TPDateTextbox.Text = f.LastWriteTime.ToShortDateString();
+            TPFilenameTextbox.Text = f.Name.Substring(0, 12);
+        }
+
+        private void PSResultsListBox_SelectedValueChanged(object sender, EventArgs e)
+        {
+            var f = new FileInfo(PSResultsListBox.SelectedItem.ToString());
+            PSDateTextbox.Text = f.LastWriteTime.ToShortDateString();
+            PSFileNameTextbox.Text = f.Name.Substring(0, 12);
         }
     }
 }
