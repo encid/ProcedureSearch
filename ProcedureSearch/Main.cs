@@ -349,7 +349,6 @@ namespace ProcedureSearch
                 {
                     return new Product(ProductNumber, DocumentList);
                 }
-                MessageBox.Show(dir);
                 // get all pdfs matching part number
                 var files = Directory.EnumerateFiles(dir, "*" + ProductNumber + "*" + ".pdf", SearchOption.AllDirectories);
                 if (!files.Any())
@@ -485,25 +484,7 @@ namespace ProcedureSearch
                     e.Handled = true;
                     return;
                 }
-            }
-
-            if (tabControl.SelectedTab.Text == "Product Code Lookup")
-            {
-                if (e.KeyChar == (char)Keys.Enter)
-                {
-                    LookupSearchButton.PerformClick();
-                    e.Handled = true;
-                    return;
-                }
-                if (!LookupComboBox.Focused)
-                {
-                    LookupComboBox.Focus();
-                    LookupComboBox.Text = e.KeyChar.ToString();
-                    LookupComboBox.SelectionStart = LookupComboBox.Text.Length;
-                    e.Handled = true;
-                    return;
-                }
-            }
+            }            
         }
 
         private void TPBWorker_DoWork(object sender, DoWorkEventArgs e)
@@ -601,43 +582,6 @@ namespace ProcedureSearch
             PSSerialEntryComboBox.Text = PSSerialEntryComboBox.Text.ToUpper();
             PSSerialEntryComboBox.SelectionStart = currPos;
         }
-
-        private void LookupSearchButton_Click(object sender, EventArgs e)
-        {
-            if (LookupComboBox.Text == "") return;
-            if (!LookupComboBox.Items.Contains(LookupComboBox.Text)) LookupComboBox.Items.Add(LookupComboBox.Text);
-
-            this.Enabled = false;
-            LookupCodeTextbox.Clear();
-
-            var IID = GetIIDFromProduct(LookupComboBox.Text);
-            if (IID == "")
-            {
-                Logger.Log($"Product code not found for assembly: {LookupComboBox.Text}", rt, true);
-                this.Enabled = true;
-                return;
-            }
-            Logger.Log($"Product code for assembly {LookupComboBox.Text} is: {IID}", rt, true);
-            LookupCodeTextbox.Text = IID;
-            this.Enabled = true;
-        }
-
-        private void SearchTPFromLookupButton_Click(object sender, EventArgs e)
-        {
-            if (LookupCodeTextbox.Text == "") return;
-            tabControl.SelectTab(0);
-            TPSerialEntryComboBox.Text = LookupCodeTextbox.Text;
-            TPSearchButton.PerformClick();
-        }
-
-        private void SearchPSFromLookupButton_Click(object sender, EventArgs e)
-        {
-            if (LookupCodeTextbox.Text == "") return;
-            tabControl.SelectTab(1);
-            PSSerialEntryComboBox.Text = LookupCodeTextbox.Text;
-            PSSearchButton.PerformClick();
-        }
-
         private void PSSearchButton_Click(object sender, EventArgs e)
         {
             if (PSBWorker.IsBusy) return;

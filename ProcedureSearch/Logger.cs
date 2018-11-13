@@ -19,7 +19,7 @@ namespace ProcedureSearch
             string LOGFILE_PATH = ConfigurationManager.AppSettings["LOGFILE_PATH"];
             var time = $"{DateTime.Now:hh:mm:sstt}";
             var datetime = time + " " + DateTime.Now.ToShortTimeString();
-            var str = $"{time} > {message}";
+            var str = $"{message}";
             if (string.IsNullOrEmpty(box.Text))
             {
                 box.AppendText(str, Color.Black);
@@ -56,7 +56,7 @@ namespace ProcedureSearch
             string LOGFILE_PATH = ConfigurationManager.AppSettings["LOGFILE_PATH"];
             var time = $"{DateTime.Now:hh:mm:sstt}";
             var datetime = time + " " + DateTime.Now.ToShortTimeString();
-            var str = $"{time} > {message}";
+            var str = $"{message}";
             if (string.IsNullOrEmpty(box.Text))
             {
                 box.AppendText(str, color);

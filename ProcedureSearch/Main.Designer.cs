@@ -45,8 +45,8 @@ namespace ProcedureSearch
             this.tabControl = new System.Windows.Forms.TabControl();
             this.tabPage1 = new System.Windows.Forms.TabPage();
             this.label1 = new System.Windows.Forms.Label();
-            this.PSOpenButton = new System.Windows.Forms.Button();
             this.label2 = new System.Windows.Forms.Label();
+            this.PSOpenButton = new System.Windows.Forms.Button();
             this.label3 = new System.Windows.Forms.Label();
             this.PSDateTextbox = new System.Windows.Forms.TextBox();
             this.PSFileNameTextbox = new System.Windows.Forms.TextBox();
@@ -55,14 +55,6 @@ namespace ProcedureSearch
             this.groupBox2 = new System.Windows.Forms.GroupBox();
             this.PSSearchButton = new System.Windows.Forms.Button();
             this.PSSerialEntryComboBox = new System.Windows.Forms.ComboBox();
-            this.tabPage2 = new System.Windows.Forms.TabPage();
-            this.SearchPSFromLookupButton = new System.Windows.Forms.Button();
-            this.SearchTPFromLookupButton = new System.Windows.Forms.Button();
-            this.label4 = new System.Windows.Forms.Label();
-            this.LookupCodeTextbox = new System.Windows.Forms.TextBox();
-            this.groupBox3 = new System.Windows.Forms.GroupBox();
-            this.LookupSearchButton = new System.Windows.Forms.Button();
-            this.LookupComboBox = new System.Windows.Forms.ComboBox();
             this.tabPage3.SuspendLayout();
             this.TPListGroupBox.SuspendLayout();
             this.TPSearchGroupBox.SuspendLayout();
@@ -70,13 +62,11 @@ namespace ProcedureSearch
             this.tabPage1.SuspendLayout();
             this.groupBox1.SuspendLayout();
             this.groupBox2.SuspendLayout();
-            this.tabPage2.SuspendLayout();
-            this.groupBox3.SuspendLayout();
             this.SuspendLayout();
             // 
             // rt
             // 
-            this.rt.Font = new System.Drawing.Font("Consolas", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.rt.Font = new System.Drawing.Font("Courier New", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.rt.Location = new System.Drawing.Point(13, 415);
             this.rt.Name = "rt";
             this.rt.Size = new System.Drawing.Size(536, 138);
@@ -126,7 +116,7 @@ namespace ProcedureSearch
             this.TPResultsListBox.DisplayMember = "Name";
             this.TPResultsListBox.FormattingEnabled = true;
             this.TPResultsListBox.ItemHeight = 16;
-            this.TPResultsListBox.Location = new System.Drawing.Point(15, 24);
+            this.TPResultsListBox.Location = new System.Drawing.Point(15, 23);
             this.TPResultsListBox.Name = "TPResultsListBox";
             this.TPResultsListBox.Size = new System.Drawing.Size(470, 100);
             this.TPResultsListBox.TabIndex = 0;
@@ -212,7 +202,6 @@ namespace ProcedureSearch
             // 
             this.tabControl.Controls.Add(this.tabPage3);
             this.tabControl.Controls.Add(this.tabPage1);
-            this.tabControl.Controls.Add(this.tabPage2);
             this.tabControl.Font = new System.Drawing.Font("Tahoma", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.tabControl.Location = new System.Drawing.Point(12, 91);
             this.tabControl.Name = "tabControl";
@@ -248,6 +237,15 @@ namespace ProcedureSearch
             this.label1.Text = "Archived!";
             this.label1.Visible = false;
             // 
+            // label2
+            // 
+            this.label2.AutoSize = true;
+            this.label2.Location = new System.Drawing.Point(66, 228);
+            this.label2.Name = "label2";
+            this.label2.Size = new System.Drawing.Size(56, 16);
+            this.label2.TabIndex = 7;
+            this.label2.Text = "Product:";
+            // 
             // PSOpenButton
             // 
             this.PSOpenButton.Location = new System.Drawing.Point(360, 253);
@@ -257,15 +255,6 @@ namespace ProcedureSearch
             this.PSOpenButton.Text = "Open";
             this.PSOpenButton.UseVisualStyleBackColor = true;
             this.PSOpenButton.Click += new System.EventHandler(this.PSOpenButton_Click);
-            // 
-            // label2
-            // 
-            this.label2.AutoSize = true;
-            this.label2.Location = new System.Drawing.Point(66, 228);
-            this.label2.Name = "label2";
-            this.label2.Size = new System.Drawing.Size(56, 16);
-            this.label2.TabIndex = 7;
-            this.label2.Text = "Product:";
             // 
             // label3
             // 
@@ -345,96 +334,11 @@ namespace ProcedureSearch
             this.PSSerialEntryComboBox.TabIndex = 0;
             this.PSSerialEntryComboBox.TextChanged += new System.EventHandler(this.PSSerialEntryComboBox_TextChanged);
             // 
-            // tabPage2
-            // 
-            this.tabPage2.Controls.Add(this.SearchPSFromLookupButton);
-            this.tabPage2.Controls.Add(this.SearchTPFromLookupButton);
-            this.tabPage2.Controls.Add(this.label4);
-            this.tabPage2.Controls.Add(this.LookupCodeTextbox);
-            this.tabPage2.Controls.Add(this.groupBox3);
-            this.tabPage2.Location = new System.Drawing.Point(4, 25);
-            this.tabPage2.Name = "tabPage2";
-            this.tabPage2.Padding = new System.Windows.Forms.Padding(3);
-            this.tabPage2.Size = new System.Drawing.Size(529, 289);
-            this.tabPage2.TabIndex = 4;
-            this.tabPage2.Text = "Product Code Lookup";
-            this.tabPage2.UseVisualStyleBackColor = true;
-            // 
-            // SearchPSFromLookupButton
-            // 
-            this.SearchPSFromLookupButton.Enabled = false;
-            this.SearchPSFromLookupButton.Location = new System.Drawing.Point(398, 87);
-            this.SearchPSFromLookupButton.Name = "SearchPSFromLookupButton";
-            this.SearchPSFromLookupButton.Size = new System.Drawing.Size(104, 45);
-            this.SearchPSFromLookupButton.TabIndex = 9;
-            this.SearchPSFromLookupButton.Text = "Search Process Sheets";
-            this.SearchPSFromLookupButton.UseVisualStyleBackColor = true;
-            this.SearchPSFromLookupButton.Click += new System.EventHandler(this.SearchPSFromLookupButton_Click);
-            // 
-            // SearchTPFromLookupButton
-            // 
-            this.SearchTPFromLookupButton.Enabled = false;
-            this.SearchTPFromLookupButton.Location = new System.Drawing.Point(288, 87);
-            this.SearchTPFromLookupButton.Name = "SearchTPFromLookupButton";
-            this.SearchTPFromLookupButton.Size = new System.Drawing.Size(104, 45);
-            this.SearchTPFromLookupButton.TabIndex = 8;
-            this.SearchTPFromLookupButton.Text = "Search Test Procedures";
-            this.SearchTPFromLookupButton.UseVisualStyleBackColor = true;
-            this.SearchTPFromLookupButton.Click += new System.EventHandler(this.SearchTPFromLookupButton_Click);
-            // 
-            // label4
-            // 
-            this.label4.AutoSize = true;
-            this.label4.Enabled = false;
-            this.label4.Location = new System.Drawing.Point(33, 96);
-            this.label4.Name = "label4";
-            this.label4.Size = new System.Drawing.Size(89, 16);
-            this.label4.TabIndex = 5;
-            this.label4.Text = "Product Code:";
-            // 
-            // LookupCodeTextbox
-            // 
-            this.LookupCodeTextbox.Enabled = false;
-            this.LookupCodeTextbox.Location = new System.Drawing.Point(128, 96);
-            this.LookupCodeTextbox.Name = "LookupCodeTextbox";
-            this.LookupCodeTextbox.ReadOnly = true;
-            this.LookupCodeTextbox.Size = new System.Drawing.Size(117, 23);
-            this.LookupCodeTextbox.TabIndex = 7;
-            // 
-            // groupBox3
-            // 
-            this.groupBox3.Controls.Add(this.LookupSearchButton);
-            this.groupBox3.Controls.Add(this.LookupComboBox);
-            this.groupBox3.Enabled = false;
-            this.groupBox3.Location = new System.Drawing.Point(13, 12);
-            this.groupBox3.Name = "groupBox3";
-            this.groupBox3.Size = new System.Drawing.Size(502, 58);
-            this.groupBox3.TabIndex = 4;
-            this.groupBox3.TabStop = false;
-            this.groupBox3.Text = "Enter Part Number";
-            // 
-            // LookupSearchButton
-            // 
-            this.LookupSearchButton.Location = new System.Drawing.Point(347, 19);
-            this.LookupSearchButton.Name = "LookupSearchButton";
-            this.LookupSearchButton.Size = new System.Drawing.Size(80, 24);
-            this.LookupSearchButton.TabIndex = 1;
-            this.LookupSearchButton.Text = "Search";
-            this.LookupSearchButton.UseVisualStyleBackColor = true;
-            this.LookupSearchButton.Click += new System.EventHandler(this.LookupSearchButton_Click);
-            // 
-            // LookupComboBox
-            // 
-            this.LookupComboBox.FormattingEnabled = true;
-            this.LookupComboBox.Location = new System.Drawing.Point(15, 19);
-            this.LookupComboBox.Name = "LookupComboBox";
-            this.LookupComboBox.Size = new System.Drawing.Size(279, 24);
-            this.LookupComboBox.TabIndex = 0;
-            // 
             // Main
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            this.BackColor = System.Drawing.SystemColors.Control;
             this.ClientSize = new System.Drawing.Size(556, 568);
             this.Controls.Add(this.rt);
             this.Controls.Add(this.tabControl);
@@ -455,9 +359,6 @@ namespace ProcedureSearch
             this.tabPage1.PerformLayout();
             this.groupBox1.ResumeLayout(false);
             this.groupBox2.ResumeLayout(false);
-            this.tabPage2.ResumeLayout(false);
-            this.tabPage2.PerformLayout();
-            this.groupBox3.ResumeLayout(false);
             this.ResumeLayout(false);
 
         }
@@ -478,7 +379,6 @@ namespace ProcedureSearch
         private TabControl tabControl;
         private TabPage tabPage1;
         private Label TPArchivedLabel;
-        private TabPage tabPage2;
         private GroupBox groupBox1;
         private ListBox PSResultsListBox;
         private GroupBox groupBox2;
@@ -490,13 +390,6 @@ namespace ProcedureSearch
         private Label label3;
         private TextBox PSDateTextbox;
         private TextBox PSFileNameTextbox;
-        private Button SearchPSFromLookupButton;
-        private Button SearchTPFromLookupButton;
-        private Label label4;
-        private TextBox LookupCodeTextbox;
-        private GroupBox groupBox3;
-        private Button LookupSearchButton;
-        private ComboBox LookupComboBox;
     }
 }
 
