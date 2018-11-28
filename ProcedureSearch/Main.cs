@@ -107,7 +107,6 @@ namespace ProcedureSearch
                     var reader = cmd.ExecuteReader();
                     while (reader.Read())
                     {
-                        //if (!reader.IsDBNull(1))
                         if (reader.GetValue(1) != DBNull.Value)
                         {
                             product = reader.GetString(1); 
@@ -118,6 +117,7 @@ namespace ProcedureSearch
                 catch (Exception ex)
                 {
                     ExecuteSecure(() => Logger.Log("An error has occured with IID database: " + ex.Message, rt, Color.Red, true));
+                    conn.Close();
                     return product;
                 }
                 finally
@@ -128,40 +128,40 @@ namespace ProcedureSearch
             return product;
         }
 
-        private string GetIIDFromProduct(string product)
-        {
-            var IID = "";
-            using (OleDbConnection conn = new OleDbConnection("Provider=Microsoft.Jet.OLEDB.4.0;Data Source=" + IID_DATABASE_PATH))
-            {
-                try
-                {
-                    conn.Open();
-                    var cmd = conn.CreateCommand();
-                    cmd.CommandText = $@"SELECT * FROM ProductCode WHERE (Product = @product)";
-                    var param = cmd.Parameters.Add("iid", OleDbType.VarChar).Value = product;
-                    var reader = cmd.ExecuteReader();
-                    while (reader.Read())                    
-                    {
-                        //if (!reader.IsDBNull(0))
-                        if (reader.GetValue(0) != System.DBNull.Value)
-                        {
-                            IID = reader.GetString(0);
-                        }
-                    }
-                    conn.Close();
-                }
-                catch (Exception ex)
-                {
-                    ExecuteSecure(() => Logger.Log("An error has occured with IID database: " + ex.Message, rt, Color.Red, true));
-                    return IID;
-                }
-                finally
-                {
-                    conn.Close();
-                }
-            }
-            return IID;
-        }
+        //private string GetIIDFromProduct(string product)
+        //{
+        //    var IID = "";
+        //    using (OleDbConnection conn = new OleDbConnection("Provider=Microsoft.Jet.OLEDB.4.0;Data Source=" + IID_DATABASE_PATH))
+        //    {
+        //        try
+        //        {
+        //            //conn.Open();
+        //            var cmd = conn.CreateCommand();
+        //            cmd.CommandText = $@"SELECT * FROM ProductCode WHERE (Product = @product)";
+        //            var param = cmd.Parameters.Add("iid", OleDbType.VarChar).Value = product;
+        //            var reader = cmd.ExecuteReader();
+        //            while (reader.Read())                    
+        //            {
+        //                //if (!reader.IsDBNull(0))
+        //                if (reader.GetValue(0) != System.DBNull.Value)
+        //                {
+        //                    IID = reader.GetString(0);
+        //                }
+        //            }
+        //            //conn.Close();
+        //        }
+        //        catch (Exception ex)
+        //        {
+        //            ExecuteSecure(() => Logger.Log("An error has occured with IID database: " + ex.Message, rt, Color.Red, true));
+        //            return IID;
+        //        }
+        //        finally
+        //        {
+        //            conn.Close();
+        //        }
+        //    }
+        //    return IID;
+        //}
 
         private Product FindProcedures(string input, bool IsSerial)
         {
@@ -491,7 +491,7 @@ namespace ProcedureSearch
         {
             Product product;
             var input = (string)e.Argument;
-            if (input.Count(c => c == '-') >= 2)
+            if (input.Contains("-"))
             {
                 product = FindProcedures((string)e.Argument, false);
             }
@@ -532,7 +532,7 @@ namespace ProcedureSearch
         {
             Product product;
             var input = (string)e.Argument;
-            if (input.Count(c => c == '-') >= 2)
+            if (input.Contains("-"))
             {
                 product = FindProcessSheets((string)e.Argument, false);
             }
@@ -582,6 +582,7 @@ namespace ProcedureSearch
             PSSerialEntryComboBox.Text = PSSerialEntryComboBox.Text.ToUpper();
             PSSerialEntryComboBox.SelectionStart = currPos;
         }
+
         private void PSSearchButton_Click(object sender, EventArgs e)
         {
             if (PSBWorker.IsBusy) return;
@@ -634,6 +635,11 @@ namespace ProcedureSearch
             var f = new FileInfo(PSResultsListBox.SelectedItem.ToString());
             PSDateTextbox.Text = f.LastWriteTime.ToShortDateString();
             PSFileNameTextbox.Text = f.Name.Substring(0, 12);
+        }
+
+        private void Main_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            Logger.Log("Program exited.", rt, true);
         }
     }
 }
