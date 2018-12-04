@@ -41,7 +41,9 @@ namespace ProcedureSearch
                         }
                     }
                 }
+#pragma warning disable RECS0022 // A catch clause that catches System.Exception and has an empty body
                 catch
+#pragma warning restore RECS0022 // A catch clause that catches System.Exception and has an empty body
                 {
                 }
             }
@@ -79,7 +81,9 @@ namespace ProcedureSearch
                         }
                     }
                 }
+#pragma warning disable RECS0022 // A catch clause that catches System.Exception and has an empty body
                 catch
+#pragma warning restore RECS0022 // A catch clause that catches System.Exception and has an empty body
                 {
                 }
             }

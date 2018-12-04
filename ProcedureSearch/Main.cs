@@ -58,6 +58,8 @@ namespace ProcedureSearch
                     rt.ScrollToCaret();
             };
             this.KeyPreview = true;
+
+            this.Icon = ProcedureSearch.Properties.Resources.icon;
         }
 
         private void Main_Load(object sender, EventArgs e)
@@ -419,14 +421,14 @@ namespace ProcedureSearch
             }
 
             TPSerialEntryComboBox.SelectAll();
-            this.Enabled = false;
+            tabControl.Enabled = false;
             SearchingForm.Show();
             TPBWorker.RunWorkerAsync(TPSerialEntryComboBox.Text);
         }
 
         private void Main_KeyPress(object sender, KeyPressEventArgs e)
         {
-            if (this.Enabled == false) return;
+            if (tabControl.Enabled == false) return;
 
             if (tabControl.SelectedTab.Text == "Test Procedures")
             {
@@ -447,7 +449,7 @@ namespace ProcedureSearch
                     TPSearchButton.PerformClick();
                     return;
                 }
-                if (!TPSerialEntryComboBox.Focused)
+                if (!TPSerialEntryComboBox.Focused && e.KeyChar != (char)Keys.Enter)
                 {
                     TPSerialEntryComboBox.Focus();
                     TPSerialEntryComboBox.Text = e.KeyChar.ToString();
@@ -476,7 +478,7 @@ namespace ProcedureSearch
                     PSSearchButton.PerformClick();
                     return;
                 }
-                if (!PSSerialEntryComboBox.Focused)
+                if (!PSSerialEntryComboBox.Focused && e.KeyChar != (char)Keys.Enter)
                 {
                     PSSerialEntryComboBox.Focus();
                     PSSerialEntryComboBox.Text = e.KeyChar.ToString();
@@ -504,13 +506,14 @@ namespace ProcedureSearch
 
         private void TPBWorker_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
         {
-            this.Enabled = true;
+            tabControl.Enabled = true;
             
             SearchingForm.Hide();
             var product = (Product)e.Result;
             string ProductNumber = product.ProductNumber;
             List<string> ProceduresList = product.DocumentList;
             TPFilenameTextbox.Text = ProductNumber;
+            TPSerialEntryComboBox.Focus();
 
             if (!ProceduresList.Any())
             {
@@ -545,13 +548,14 @@ namespace ProcedureSearch
 
         private void PSBWorker_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
         {
-            this.Enabled = true;
+            tabControl.Enabled = true;
 
             SearchingForm.Hide();
             var product = (Product)e.Result;
             string ProductNumber = product.ProductNumber;
             List<string> ProceduresList = product.DocumentList;
             PSFileNameTextbox.Text = ProductNumber;
+            PSSerialEntryComboBox.Focus();
 
             if (!ProceduresList.Any())
             {
@@ -606,7 +610,7 @@ namespace ProcedureSearch
             }
 
             PSSerialEntryComboBox.SelectAll();
-            this.Enabled = false;
+            tabControl.Enabled = false;
             SearchingForm.Show();
             PSBWorker.RunWorkerAsync(PSSerialEntryComboBox.Text);            
         }

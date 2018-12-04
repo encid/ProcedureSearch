@@ -29,7 +29,6 @@ namespace ProcedureSearch
         /// </summary>
         private void InitializeComponent()
         {
-            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Main));
             this.rt = new System.Windows.Forms.RichTextBox();
             this.tabPage3 = new System.Windows.Forms.TabPage();
             this.label4 = new System.Windows.Forms.Label();
@@ -58,10 +57,10 @@ namespace ProcedureSearch
             this.groupBox2 = new System.Windows.Forms.GroupBox();
             this.PSSearchButton = new System.Windows.Forms.Button();
             this.PSSerialEntryComboBox = new System.Windows.Forms.ComboBox();
-            this.pictureBox1 = new System.Windows.Forms.PictureBox();
-            this.pictureBox2 = new System.Windows.Forms.PictureBox();
             this.label6 = new System.Windows.Forms.Label();
             this.label7 = new System.Windows.Forms.Label();
+            this.pictureBox2 = new System.Windows.Forms.PictureBox();
+            this.pictureBox1 = new System.Windows.Forms.PictureBox();
             this.tabPage3.SuspendLayout();
             this.TPListGroupBox.SuspendLayout();
             this.TPSearchGroupBox.SuspendLayout();
@@ -69,8 +68,8 @@ namespace ProcedureSearch
             this.tabPage1.SuspendLayout();
             this.groupBox1.SuspendLayout();
             this.groupBox2.SuspendLayout();
-            ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox2)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).BeginInit();
             this.SuspendLayout();
             // 
             // rt
@@ -78,6 +77,7 @@ namespace ProcedureSearch
             this.rt.Font = new System.Drawing.Font("Courier New", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.rt.Location = new System.Drawing.Point(13, 455);
             this.rt.Name = "rt";
+            this.rt.ReadOnly = true;
             this.rt.Size = new System.Drawing.Size(536, 138);
             this.rt.TabIndex = 6;
             this.rt.Text = "";
@@ -373,28 +373,6 @@ namespace ProcedureSearch
             this.PSSerialEntryComboBox.TabIndex = 0;
             this.PSSerialEntryComboBox.TextChanged += new System.EventHandler(this.PSSerialEntryComboBox_TextChanged);
             // 
-            // pictureBox1
-            // 
-            this.pictureBox1.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
-            this.pictureBox1.Image = global::ProcedureSearch.Properties.Resources.fastlogo2;
-            this.pictureBox1.Location = new System.Drawing.Point(12, 6);
-            this.pictureBox1.Name = "pictureBox1";
-            this.pictureBox1.Size = new System.Drawing.Size(135, 79);
-            this.pictureBox1.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
-            this.pictureBox1.TabIndex = 7;
-            this.pictureBox1.TabStop = false;
-            // 
-            // pictureBox2
-            // 
-            this.pictureBox2.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
-            this.pictureBox2.Image = global::ProcedureSearch.Properties.Resources.kitchenbrains;
-            this.pictureBox2.Location = new System.Drawing.Point(414, 6);
-            this.pictureBox2.Name = "pictureBox2";
-            this.pictureBox2.Size = new System.Drawing.Size(135, 79);
-            this.pictureBox2.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
-            this.pictureBox2.TabIndex = 8;
-            this.pictureBox2.TabStop = false;
-            // 
             // label6
             // 
             this.label6.AutoSize = true;
@@ -409,11 +387,33 @@ namespace ProcedureSearch
             // 
             this.label7.AutoSize = true;
             this.label7.Font = new System.Drawing.Font("Tahoma", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.label7.Location = new System.Drawing.Point(196, 49);
+            this.label7.Location = new System.Drawing.Point(204, 50);
             this.label7.Name = "label7";
-            this.label7.Size = new System.Drawing.Size(166, 14);
+            this.label7.Size = new System.Drawing.Size(148, 14);
             this.label7.TabIndex = 10;
-            this.label7.Text = "Version 1.0.0  -  11/28/2018";
+            this.label7.Text = "Version 1.0  -  12/2/2018";
+            // 
+            // pictureBox2
+            // 
+            this.pictureBox2.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.pictureBox2.Image = global::ProcedureSearch.Properties.Resources.kitchenbrains;
+            this.pictureBox2.Location = new System.Drawing.Point(414, 6);
+            this.pictureBox2.Name = "pictureBox2";
+            this.pictureBox2.Size = new System.Drawing.Size(135, 79);
+            this.pictureBox2.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
+            this.pictureBox2.TabIndex = 8;
+            this.pictureBox2.TabStop = false;
+            // 
+            // pictureBox1
+            // 
+            this.pictureBox1.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.pictureBox1.Image = global::ProcedureSearch.Properties.Resources.fastlogo2;
+            this.pictureBox1.Location = new System.Drawing.Point(12, 6);
+            this.pictureBox1.Name = "pictureBox1";
+            this.pictureBox1.Size = new System.Drawing.Size(135, 79);
+            this.pictureBox1.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
+            this.pictureBox1.TabIndex = 7;
+            this.pictureBox1.TabStop = false;
             // 
             // Main
             // 
@@ -428,7 +428,6 @@ namespace ProcedureSearch
             this.Controls.Add(this.rt);
             this.Controls.Add(this.tabControl);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
-            this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.MaximizeBox = false;
             this.Name = "Main";
             this.SizeGripStyle = System.Windows.Forms.SizeGripStyle.Hide;
@@ -446,8 +445,8 @@ namespace ProcedureSearch
             this.tabPage1.PerformLayout();
             this.groupBox1.ResumeLayout(false);
             this.groupBox2.ResumeLayout(false);
-            ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox2)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();
 
