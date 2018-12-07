@@ -34,7 +34,7 @@
             // 
             // progressBar1
             // 
-            this.progressBar1.Location = new System.Drawing.Point(40, 66);
+            this.progressBar1.Location = new System.Drawing.Point(40, 54);
             this.progressBar1.MarqueeAnimationSpeed = 16;
             this.progressBar1.Name = "progressBar1";
             this.progressBar1.Size = new System.Drawing.Size(275, 23);
@@ -45,7 +45,7 @@
             // label1
             // 
             this.label1.AutoSize = true;
-            this.label1.Location = new System.Drawing.Point(118, 29);
+            this.label1.Location = new System.Drawing.Point(118, 25);
             this.label1.Name = "label1";
             this.label1.Size = new System.Drawing.Size(122, 13);
             this.label1.TabIndex = 1;
@@ -56,11 +56,12 @@
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(351, 106);
+            this.ClientSize = new System.Drawing.Size(343, 98);
             this.ControlBox = false;
             this.Controls.Add(this.label1);
             this.Controls.Add(this.progressBar1);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
+            this.ImeMode = System.Windows.Forms.ImeMode.NoControl;
             this.MaximizeBox = false;
             this.MinimizeBox = false;
             this.Name = "SearchingProgressForm";
@@ -69,7 +70,7 @@
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.Text = "Searching...";
             this.TopMost = true;
-            this.UseWaitCursor = true;            
+            this.UseWaitCursor = true;
             this.ResumeLayout(false);
             this.PerformLayout();
 
