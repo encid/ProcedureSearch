@@ -387,11 +387,11 @@ namespace ProcedureSearch
             // 
             this.label7.AutoSize = true;
             this.label7.Font = new System.Drawing.Font("Tahoma", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.label7.Location = new System.Drawing.Point(204, 50);
+            this.label7.Location = new System.Drawing.Point(198, 50);
             this.label7.Name = "label7";
-            this.label7.Size = new System.Drawing.Size(148, 14);
+            this.label7.Size = new System.Drawing.Size(166, 14);
             this.label7.TabIndex = 10;
-            this.label7.Text = "Version 1.0  -  12/2/2018";
+            this.label7.Text = "Version 1.0.1  -  12/28/2018";
             // 
             // pictureBox2
             // 

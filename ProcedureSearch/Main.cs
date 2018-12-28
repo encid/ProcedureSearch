@@ -1,14 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.IO;
-using System.Drawing;
-using System.Linq;
 using System.Configuration;
-using System.Windows.Forms;
 using System.Data.OleDb;
 using System.Diagnostics;
+using System.Drawing;
+using System.IO;
+using System.Linq;
 using System.Text.RegularExpressions;
+using System.Windows.Forms;
 
 namespace ProcedureSearch
 {
@@ -20,7 +20,6 @@ namespace ProcedureSearch
         SearchingProgressForm SearchingForm = new SearchingProgressForm();
         BackgroundWorker TPBWorker = new BackgroundWorker();
         BackgroundWorker PSBWorker = new BackgroundWorker();
-        List<string> cb1 = new List<string>();
 
         class Product
         {
@@ -59,7 +58,7 @@ namespace ProcedureSearch
             };
             this.KeyPreview = true;
 
-            this.Icon = ProcedureSearch.Properties.Resources.icon;
+            this.Icon = Properties.Resources.icon;
         }
 
         private void Main_Load(object sender, EventArgs e)
@@ -98,80 +97,40 @@ namespace ProcedureSearch
         private string GetProductFromIID(string IID)
         {
             var product = "";
-            using (OleDbConnection conn = new OleDbConnection("Provider=Microsoft.Jet.OLEDB.4.0;Data Source=" + IID_DATABASE_PATH))
+            try
             {
-                try
+                using (OleDbConnection conn = new OleDbConnection($"Provider=Microsoft.Jet.OLEDB.4.0;Data Source={IID_DATABASE_PATH}"))
                 {
                     conn.Open();
-                    var cmd = conn.CreateCommand();                    
-                    cmd.CommandText = $@"SELECT * FROM ProductCode WHERE (ProductID = @iid)";
-                    var param = cmd.Parameters.Add("iid", OleDbType.VarChar).Value = IID;
-                    var reader = cmd.ExecuteReader();
-                    while (reader.Read())
+                    using (OleDbCommand cmd = conn.CreateCommand())
                     {
-                        if (reader.GetValue(1) != DBNull.Value)
+                        cmd.CommandText = "SELECT * FROM ProductCode WHERE (ProductID = @iid)";
+                        cmd.Parameters.AddWithValue("iid", IID);
+                        var reader = cmd.ExecuteReader();
+                        while (reader.Read() && !reader.IsDBNull(1))
                         {
-                            product = reader.GetString(1); 
+                            product = reader.GetString(1);
                         }
                     }
-                    conn.Close();
-                }
-                catch (Exception ex)
-                {
-                    ExecuteSecure(() => Logger.Log("An error has occured with IID database: " + ex.Message, rt, Color.Red, true));
-                    conn.Close();
-                    return product;
-                }
-                finally
-                {
-                    conn.Close();
+                    conn.Close(); 
                 }
             }
+            catch (Exception ex)
+            {
+                ExecuteSecure(() => Logger.Log("An error has occured with IID database: " + ex.Message, rt, Color.Red, true));
+                return product;
+            }
+            
             return product;
         }
-
-        //private string GetIIDFromProduct(string product)
-        //{
-        //    var IID = "";
-        //    using (OleDbConnection conn = new OleDbConnection("Provider=Microsoft.Jet.OLEDB.4.0;Data Source=" + IID_DATABASE_PATH))
-        //    {
-        //        try
-        //        {
-        //            //conn.Open();
-        //            var cmd = conn.CreateCommand();
-        //            cmd.CommandText = $@"SELECT * FROM ProductCode WHERE (Product = @product)";
-        //            var param = cmd.Parameters.Add("iid", OleDbType.VarChar).Value = product;
-        //            var reader = cmd.ExecuteReader();
-        //            while (reader.Read())                    
-        //            {
-        //                //if (!reader.IsDBNull(0))
-        //                if (reader.GetValue(0) != System.DBNull.Value)
-        //                {
-        //                    IID = reader.GetString(0);
-        //                }
-        //            }
-        //            //conn.Close();
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            ExecuteSecure(() => Logger.Log("An error has occured with IID database: " + ex.Message, rt, Color.Red, true));
-        //            return IID;
-        //        }
-        //        finally
-        //        {
-        //            conn.Close();
-        //        }
-        //    }
-        //    return IID;
-        //}
 
         private Product FindProcedures(string input, bool IsSerial)
         {
             List<string> DocumentList = new List<string>();
-            string ProductNumber;
+            string ProductNumber = input;
+            string dir;
             try
             {
-                ProductNumber = input;
                 if (IsSerial)
                 {
                     // Using the IID (first 3 chars) from serial number, find corresponding product number
@@ -184,89 +143,75 @@ namespace ProcedureSearch
                 }
                 
                 // get first 3 digits of product number to determine if final assy or sub assy
-                var ProdFirst3 = ProductNumber.Substring(0, 3);
+                var ProductPrefix = ProductNumber.Substring(0, 3);
                 // remove first 4 characters of product number to get assembly number
                 var AssemblyNumber = ProductNumber.Remove(0, 4);
                 // find procedure based on first 3 digits
-                switch (ProdFirst3)
+                switch (ProductPrefix)
                 {
                     case "231":
-                    if (!Directory.Exists($@"{VAULT_PATH}\Released_Part_Information\234-xxxxx_Assy_Test_Proc\Standard_Products\234-{AssemblyNumber.Substring(0, 5)}"))
+                    {
+                        dir = $@"{VAULT_PATH}\Released_Part_Information\234-xxxxx_Assy_Test_Proc\Standard_Products\234-{AssemblyNumber.Substring(0, 5)}";
+                        break;
+                    }
+
+                    case "216":
+                    {
+                        dir = $@"{VAULT_PATH}\Released_Part_Information\225-xxxxx_Proc_Mfg_Test\225-{AssemblyNumber.Substring(0, 5)}";
+                        break;
+                    }
+
+                    default:
                     {
                         return new Product(ProductNumber, DocumentList);
                     }
-                    foreach (string file in Directory.EnumerateFiles($@"{VAULT_PATH}\Released_Part_Information\234-xxxxx_Assy_Test_Proc\Standard_Products\234-{AssemblyNumber.Substring(0, 5)}", 
-                                                                    ("*" + AssemblyNumber + "*"), SearchOption.AllDirectories))
-                    {
-                        // check for duplicate files in list, and if no duplicates exist, add the file
-                        // Also, check for archive, and do NOT add archived files to list.
-                        if (!DocumentList.Contains(file) && (file.ToLower().Contains("archive") == false))
-                        {
-                            DocumentList.Add(file);
-                        }
-                    }
+                }
 
-                    if (!DocumentList.Any())
-                    {                     
-                        foreach (string file in Directory.EnumerateFiles($@"\\ares\shared\Operations\Test Engineering\Documents ready for release",
-                                                                        ("*" + AssemblyNumber + "*"), SearchOption.TopDirectoryOnly))
-                        {
-                            // check for duplicate files in listbox, and if no duplicates exist, add the file
-                            if (!DocumentList.Contains(file))
-                            {
-                                DocumentList.Add(file);
-                            }
-                        }
-                    }
-                    return new Product(ProductNumber, DocumentList);
-
-                    case "216":
-                    foreach (string file in Directory.EnumerateFiles($@"{VAULT_PATH}\Released_Part_Information\225-xxxxx_Proc_Mfg_Test\",
-                                                                    ("*" + (AssemblyNumber + "*")), System.IO.SearchOption.AllDirectories))
-                    {
-                        // check for duplicate files in list, and if no duplicates exist, add the file
-                        // Also, check for archive, and do NOT add archived files to list.
-                        if (!DocumentList.Contains(file) && (file.ToLower().Contains("archive") == false))
-                        {
-                            DocumentList.Add(file);
-                        }
-                    }
-
-                    if (!DocumentList.Any())
-                    {
-                        foreach (string file in Directory.EnumerateFiles($@"\\ares\shared\Operations\Test Engineering\Documents ready for release",
-                                                                               ("*" + (AssemblyNumber + "*")), System.IO.SearchOption.TopDirectoryOnly))
-                        {
-                            // check for duplicate files in listbox, and if no duplicates exist, add the file
-                            if (!DocumentList.Contains(file))
-                            {
-                                DocumentList.Add(file);
-                            }
-                        }
-                    }
-                    return new Product(ProductNumber, DocumentList);
-                    default:
+                if (!Directory.Exists(dir))
+                {
                     return new Product(ProductNumber, DocumentList);
                 }
+                
+                var files = Directory.EnumerateFiles(dir, "*" + AssemblyNumber + "*", SearchOption.AllDirectories);
+                // if no matches, check for -XX files
+                if (!files.Any())
+                    files = Directory.EnumerateFiles(dir, "*" + AssemblyNumber.Substring(0, 5) + "-XX" + "*", SearchOption.AllDirectories);
+                //if no matches again, check in to-be-released test engineering folder
+                if (!files.Any())
+                {
+                    dir = $@"\\ares\shared\Operations\Test Engineering\Documents ready for release";
+                    files = Directory.EnumerateFiles(dir, "*" + AssemblyNumber + "*", SearchOption.AllDirectories);
+                }
+
+                foreach (var f in files)
+                {
+                    // check for duplicate files in list, and if no duplicates exist, add the file
+                    // Also, check for archive, and do NOT add archived files to list.
+                    if (!DocumentList.Contains(f) && !(f.ToLower().Contains("archive")))
+                    {
+                        DocumentList.Add(f);
+                    }
+                }
+
+                return new Product(ProductNumber, DocumentList);
             }
             catch (Exception ex)
             {
                 ExecuteSecure(() => Logger.Log("An error has occured: " + ex.Message, rt, Color.Red, true));
-                return new Product(null, DocumentList);
+                return new Product(ProductNumber, DocumentList);
             }
         }
 
         private Product FindProcessSheets(string input, bool IsSerial)
         {
             List<string> DocumentList = new List<string>();
-            string ProductNumber;
+            string ProductNumber = input;
             string dir;
             try
             {
-                ProductNumber = input;
                 if (IsSerial)
                 {
-                    // Using the IID (first 3 chars) from serial number, find corresponding product number
+                    // Using the IID (first 3 chars) from serial number, find corresponding product number 
                     ProductNumber = GetProductFromIID(input.Substring(0, 3));
                 }
                 
@@ -276,10 +221,10 @@ namespace ProcedureSearch
                 }
 
                 // get first 3 digits of product number to determine what type of part
-                var ProdFirst3 = ProductNumber.Substring(0, 3);
+                var ProductPrefix = ProductNumber.Substring(0, 3);
                 // remove first 4 characters of product number to get assembly number
                 var AssemblyNumber = ProductNumber.Remove(0, 4);
-                switch (ProdFirst3)
+                switch (ProductPrefix)
                 {
                     case "213":
                     {
@@ -351,6 +296,7 @@ namespace ProcedureSearch
                 {
                     return new Product(ProductNumber, DocumentList);
                 }
+
                 // get all pdfs matching part number
                 var files = Directory.EnumerateFiles(dir, "*" + ProductNumber + "*" + ".pdf", SearchOption.AllDirectories);
                 if (!files.Any())
@@ -360,17 +306,27 @@ namespace ProcedureSearch
                 if (!files.Any())
                     return new Product(ProductNumber, DocumentList);
 
-                var fi = new List<FileInfo>();
+                var fileinfo = new List<FileInfo>();
                 foreach (var f in files)
-                    fi.Add(new FileInfo(f));
-                DocumentList.Add(fi.OrderByDescending(f => f.LastWriteTime).FirstOrDefault().ToString());
+                {
+                    if (!f.ToLower().Contains("archive"))
+                    {
+                        fileinfo.Add(new FileInfo(f));
+                    }
+                }
+
+                // only attempt to add files to DocumentList if the fileinfo list is populated, to avoid null exception
+                if (fileinfo.Any())
+                {
+                    DocumentList.Add(fileinfo.OrderByDescending(f => f.LastWriteTime).FirstOrDefault().ToString());
+                }
 
                 return new Product(ProductNumber, DocumentList);
             }
             catch (Exception ex)
             {
                 ExecuteSecure(() => Logger.Log("An error has occured: "+ ex.TargetSite + " - " + ex.Message, rt, Color.Red, true));
-                return new Product(input, DocumentList);
+                return new Product(ProductNumber, DocumentList);
             }            
         }
 
@@ -378,7 +334,7 @@ namespace ProcedureSearch
         {
             if (TPResultsListBox.Items.Count == 0)
             {
-                Logger.Log("No procedure selected, enter a serial number and search.", rt, Color.Red, true);
+                Logger.Log("No procedure selected, enter a serial number or product and search.", rt, Color.Red, true);
                 return;
             }
 
@@ -407,11 +363,11 @@ namespace ProcedureSearch
             TPResultsListBox.Items.Clear();
             Regex rx = new Regex("[^a-zA-Z0-9]");
             var Serial = TPSerialEntryComboBox.Text;
-            Serial = rx.Replace(TPSerialEntryComboBox.Text, "");
-            
-            if (Serial.Length < 3)
+            //Serial = rx.Replace(TPSerialEntryComboBox.Text, "");
+
+            if (Serial.Length < 3 || (Serial.Contains('-') && Serial.Length < 9))
             {
-                Logger.Log($"Invalid serial number entered.", rt, true);
+                Logger.Log($"Invalid serial number or product entered.", rt, true);
                 return;
             }
 
@@ -423,18 +379,26 @@ namespace ProcedureSearch
             TPSerialEntryComboBox.SelectAll();
             tabControl.Enabled = false;
             SearchingForm.Show();
-            TPBWorker.RunWorkerAsync(TPSerialEntryComboBox.Text);
+            TPBWorker.RunWorkerAsync(Serial);
         }
 
         private void Main_KeyPress(object sender, KeyPressEventArgs e)
         {
-            if (tabControl.Enabled == false) return;
+            if (!tabControl.Enabled) return;
 
             if (tabControl.SelectedTab.Text == "Test Procedures")
             {
                 if (TPSerialEntryComboBox.Focused && e.KeyChar == (char)Keys.Enter)
                 {
                     TPSearchButton.PerformClick();
+                    e.Handled = true;
+                    return;
+                }
+                if (!TPSerialEntryComboBox.Focused && e.KeyChar != (char)Keys.Enter)
+                {
+                    TPSerialEntryComboBox.Focus();
+                    TPSerialEntryComboBox.Text = e.KeyChar.ToString();
+                    TPSerialEntryComboBox.SelectionStart = TPSerialEntryComboBox.Text.Length;
                     e.Handled = true;
                     return;
                 }
@@ -448,15 +412,7 @@ namespace ProcedureSearch
                     e.KeyChar = (char)Keys.None;
                     TPSearchButton.PerformClick();
                     return;
-                }
-                if (!TPSerialEntryComboBox.Focused && e.KeyChar != (char)Keys.Enter)
-                {
-                    TPSerialEntryComboBox.Focus();
-                    TPSerialEntryComboBox.Text = e.KeyChar.ToString();
-                    TPSerialEntryComboBox.SelectionStart = TPSerialEntryComboBox.Text.Length;
-                    e.Handled = true;
-                    return;
-                }
+                }                
             }
 
             if (tabControl.SelectedTab.Text == "Process Sheets")
@@ -464,6 +420,14 @@ namespace ProcedureSearch
                 if (PSSerialEntryComboBox.Focused && e.KeyChar == (char)Keys.Enter)
                 {
                     PSSearchButton.PerformClick();
+                    e.Handled = true;
+                    return;
+                }
+                if (!PSSerialEntryComboBox.Focused && e.KeyChar != (char)Keys.Enter)
+                {
+                    PSSerialEntryComboBox.Focus();
+                    PSSerialEntryComboBox.Text = e.KeyChar.ToString();
+                    PSSerialEntryComboBox.SelectionStart = PSSerialEntryComboBox.Text.Length;
                     e.Handled = true;
                     return;
                 }
@@ -477,15 +441,7 @@ namespace ProcedureSearch
                     e.KeyChar = (char)Keys.None;
                     PSSearchButton.PerformClick();
                     return;
-                }
-                if (!PSSerialEntryComboBox.Focused && e.KeyChar != (char)Keys.Enter)
-                {
-                    PSSerialEntryComboBox.Focus();
-                    PSSerialEntryComboBox.Text = e.KeyChar.ToString();
-                    PSSerialEntryComboBox.SelectionStart = PSSerialEntryComboBox.Text.Length;
-                    e.Handled = true;
-                    return;
-                }
+                }                
             }            
         }
 
@@ -596,11 +552,11 @@ namespace ProcedureSearch
             PSResultsListBox.Items.Clear();
             Regex rx = new Regex("[^a-zA-Z0-9]");
             var Serial = PSSerialEntryComboBox.Text;
-            Serial = rx.Replace(PSSerialEntryComboBox.Text, "");
+            //Serial = rx.Replace(PSSerialEntryComboBox.Text, "");
 
-            if (Serial.Length < 3)
+            if (Serial.Length < 3 || (Serial.Contains('-') && Serial.Length < 9))
             {
-                Logger.Log($"Invalid serial number entered.", rt, true);
+                Logger.Log($"Invalid serial number or product entered.", rt, true);
                 return;
             }
 
@@ -612,7 +568,7 @@ namespace ProcedureSearch
             PSSerialEntryComboBox.SelectAll();
             tabControl.Enabled = false;
             SearchingForm.Show();
-            PSBWorker.RunWorkerAsync(PSSerialEntryComboBox.Text);            
+            PSBWorker.RunWorkerAsync(Serial);            
         }
 
         private void PSOpenButton_Click(object sender, EventArgs e)
@@ -628,7 +584,7 @@ namespace ProcedureSearch
         }
 
         private void TPResultsListBox_SelectedValueChanged(object sender, EventArgs e)
-        {
+        {   
             var f = new FileInfo(TPResultsListBox.SelectedItem.ToString());
             TPDateTextbox.Text = f.LastWriteTime.ToShortDateString();
             TPFilenameTextbox.Text = f.Name.Substring(0, 12);
