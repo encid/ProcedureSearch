@@ -127,11 +127,10 @@ namespace ProcedureSearch
         private Product FindProcedures(string input, bool IsSerial)
         {
             List<string> DocumentList = new List<string>();
-            string ProductNumber;
+            string ProductNumber = input;
             string dir;
             try
             {
-                ProductNumber = input;
                 if (IsSerial)
                 {
                     // Using the IID (first 3 chars) from serial number, find corresponding product number
@@ -188,7 +187,7 @@ namespace ProcedureSearch
                 {
                     // check for duplicate files in list, and if no duplicates exist, add the file
                     // Also, check for archive, and do NOT add archived files to list.
-                    if (!DocumentList.Contains(f) && (f.ToLower().Contains("archive") == false))
+                    if (!DocumentList.Contains(f) && !(f.ToLower().Contains("archive")))
                     {
                         DocumentList.Add(f);
                     }
@@ -199,18 +198,17 @@ namespace ProcedureSearch
             catch (Exception ex)
             {
                 ExecuteSecure(() => Logger.Log("An error has occured: " + ex.Message, rt, Color.Red, true));
-                return new Product(input, DocumentList);
+                return new Product(ProductNumber, DocumentList);
             }
         }
 
         private Product FindProcessSheets(string input, bool IsSerial)
         {
             List<string> DocumentList = new List<string>();
-            string ProductNumber;
+            string ProductNumber = input;
             string dir;
             try
             {
-                ProductNumber = input;
                 if (IsSerial)
                 {
                     // Using the IID (first 3 chars) from serial number, find corresponding product number 
@@ -298,6 +296,7 @@ namespace ProcedureSearch
                 {
                     return new Product(ProductNumber, DocumentList);
                 }
+
                 // get all pdfs matching part number
                 var files = Directory.EnumerateFiles(dir, "*" + ProductNumber + "*" + ".pdf", SearchOption.AllDirectories);
                 if (!files.Any())
@@ -307,17 +306,27 @@ namespace ProcedureSearch
                 if (!files.Any())
                     return new Product(ProductNumber, DocumentList);
 
-                var fi = new List<FileInfo>();
+                var fileinfo = new List<FileInfo>();
                 foreach (var f in files)
-                    fi.Add(new FileInfo(f));
-                DocumentList.Add(fi.OrderByDescending(f => f.LastWriteTime).FirstOrDefault().ToString());
+                {
+                    if (!f.ToLower().Contains("archive"))
+                    {
+                        fileinfo.Add(new FileInfo(f));
+                    }
+                }
+
+                // only attempt to add files to DocumentList if the fileinfo list is populated, to avoid null exception
+                if (fileinfo.Any())
+                {
+                    DocumentList.Add(fileinfo.OrderByDescending(f => f.LastWriteTime).FirstOrDefault().ToString());
+                }
 
                 return new Product(ProductNumber, DocumentList);
             }
             catch (Exception ex)
             {
                 ExecuteSecure(() => Logger.Log("An error has occured: "+ ex.TargetSite + " - " + ex.Message, rt, Color.Red, true));
-                return new Product(input, DocumentList);
+                return new Product(ProductNumber, DocumentList);
             }            
         }
 
@@ -325,7 +334,7 @@ namespace ProcedureSearch
         {
             if (TPResultsListBox.Items.Count == 0)
             {
-                Logger.Log("No procedure selected, enter a serial number and search.", rt, Color.Red, true);
+                Logger.Log("No procedure selected, enter a serial number or product and search.", rt, Color.Red, true);
                 return;
             }
 
@@ -354,11 +363,11 @@ namespace ProcedureSearch
             TPResultsListBox.Items.Clear();
             Regex rx = new Regex("[^a-zA-Z0-9]");
             var Serial = TPSerialEntryComboBox.Text;
-            Serial = rx.Replace(TPSerialEntryComboBox.Text, "");
-            
-            if (Serial.Length < 3)
+            //Serial = rx.Replace(TPSerialEntryComboBox.Text, "");
+
+            if (Serial.Length < 3 || (Serial.Contains('-') && Serial.Length < 9))
             {
-                Logger.Log($"Invalid serial number entered.", rt, true);
+                Logger.Log($"Invalid serial number or product entered.", rt, true);
                 return;
             }
 
@@ -370,18 +379,26 @@ namespace ProcedureSearch
             TPSerialEntryComboBox.SelectAll();
             tabControl.Enabled = false;
             SearchingForm.Show();
-            TPBWorker.RunWorkerAsync(TPSerialEntryComboBox.Text);
+            TPBWorker.RunWorkerAsync(Serial);
         }
 
         private void Main_KeyPress(object sender, KeyPressEventArgs e)
         {
-            if (tabControl.Enabled == false) return;
+            if (!tabControl.Enabled) return;
 
             if (tabControl.SelectedTab.Text == "Test Procedures")
             {
                 if (TPSerialEntryComboBox.Focused && e.KeyChar == (char)Keys.Enter)
                 {
                     TPSearchButton.PerformClick();
+                    e.Handled = true;
+                    return;
+                }
+                if (!TPSerialEntryComboBox.Focused && e.KeyChar != (char)Keys.Enter)
+                {
+                    TPSerialEntryComboBox.Focus();
+                    TPSerialEntryComboBox.Text = e.KeyChar.ToString();
+                    TPSerialEntryComboBox.SelectionStart = TPSerialEntryComboBox.Text.Length;
                     e.Handled = true;
                     return;
                 }
@@ -395,15 +412,7 @@ namespace ProcedureSearch
                     e.KeyChar = (char)Keys.None;
                     TPSearchButton.PerformClick();
                     return;
-                }
-                if (!TPSerialEntryComboBox.Focused && e.KeyChar != (char)Keys.Enter)
-                {
-                    TPSerialEntryComboBox.Focus();
-                    TPSerialEntryComboBox.Text = e.KeyChar.ToString();
-                    TPSerialEntryComboBox.SelectionStart = TPSerialEntryComboBox.Text.Length;
-                    e.Handled = true;
-                    return;
-                }
+                }                
             }
 
             if (tabControl.SelectedTab.Text == "Process Sheets")
@@ -411,6 +420,14 @@ namespace ProcedureSearch
                 if (PSSerialEntryComboBox.Focused && e.KeyChar == (char)Keys.Enter)
                 {
                     PSSearchButton.PerformClick();
+                    e.Handled = true;
+                    return;
+                }
+                if (!PSSerialEntryComboBox.Focused && e.KeyChar != (char)Keys.Enter)
+                {
+                    PSSerialEntryComboBox.Focus();
+                    PSSerialEntryComboBox.Text = e.KeyChar.ToString();
+                    PSSerialEntryComboBox.SelectionStart = PSSerialEntryComboBox.Text.Length;
                     e.Handled = true;
                     return;
                 }
@@ -424,15 +441,7 @@ namespace ProcedureSearch
                     e.KeyChar = (char)Keys.None;
                     PSSearchButton.PerformClick();
                     return;
-                }
-                if (!PSSerialEntryComboBox.Focused && e.KeyChar != (char)Keys.Enter)
-                {
-                    PSSerialEntryComboBox.Focus();
-                    PSSerialEntryComboBox.Text = e.KeyChar.ToString();
-                    PSSerialEntryComboBox.SelectionStart = PSSerialEntryComboBox.Text.Length;
-                    e.Handled = true;
-                    return;
-                }
+                }                
             }            
         }
 
@@ -543,11 +552,11 @@ namespace ProcedureSearch
             PSResultsListBox.Items.Clear();
             Regex rx = new Regex("[^a-zA-Z0-9]");
             var Serial = PSSerialEntryComboBox.Text;
-            Serial = rx.Replace(PSSerialEntryComboBox.Text, "");
+            //Serial = rx.Replace(PSSerialEntryComboBox.Text, "");
 
-            if (Serial.Length < 3)
+            if (Serial.Length < 3 || (Serial.Contains('-') && Serial.Length < 9))
             {
-                Logger.Log($"Invalid serial number entered.", rt, true);
+                Logger.Log($"Invalid serial number or product entered.", rt, true);
                 return;
             }
 
@@ -559,7 +568,7 @@ namespace ProcedureSearch
             PSSerialEntryComboBox.SelectAll();
             tabControl.Enabled = false;
             SearchingForm.Show();
-            PSBWorker.RunWorkerAsync(PSSerialEntryComboBox.Text);            
+            PSBWorker.RunWorkerAsync(Serial);            
         }
 
         private void PSOpenButton_Click(object sender, EventArgs e)
@@ -591,6 +600,6 @@ namespace ProcedureSearch
         private void Main_FormClosing(object sender, FormClosingEventArgs e)
         {
             Logger.Log("Program exited.", rt, true);
-        }                                                                                                             
+        }
     }
 }
