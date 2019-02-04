@@ -63,6 +63,20 @@ namespace ProcedureSearch
 
         private void Main_Load(object sender, EventArgs e)
         {
+            //set default config values if config file doesn't load
+            if (VAULT_PATH == null)
+            {
+                VAULT_PATH = @"\\pandora\vault";
+            }
+            if (IID_DATABASE_PATH == null)
+            {
+                IID_DATABASE_PATH = @"\\ares\shared\Operations\Test Engineering\Test Softwares\ProcedureSearch\ProductCodesMaster.mdb";
+            }
+            if (LOGFILE_PATH == null)
+            {
+                LOGFILE_PATH = @"\\ares\shared\Operations\Test Engineering\Test Softwares\ProcedureSearch\log.txt";
+            }
+
             SearchingForm.Hide();
 
             Logger.Log("Program loaded, ready to search.", rt, true);
@@ -85,8 +99,7 @@ namespace ProcedureSearch
             try
             {
                 Logger.Log($"Opening document {FileName}", rt, true);
-                var fi = new FileInfo(FileName);
-                Process.Start(fi.FullName);
+                Process.Start(FileName);
             }
             catch (Exception ex)
             {
@@ -388,6 +401,11 @@ namespace ProcedureSearch
 
             if (tabControl.SelectedTab.Text == "Test Procedures")
             {
+                if (e.KeyChar == '[')
+                {
+                    e.KeyChar = (char)Keys.None;
+                    e.Handled = true;
+                }
                 if (TPSerialEntryComboBox.Focused && e.KeyChar == (char)Keys.Enter)
                 {
                     TPSearchButton.PerformClick();
@@ -417,6 +435,11 @@ namespace ProcedureSearch
 
             if (tabControl.SelectedTab.Text == "Process Sheets")
             {
+                if (e.KeyChar == '[')
+                {
+                    e.KeyChar = (char)Keys.None;
+                    e.Handled = true;
+                }
                 if (PSSerialEntryComboBox.Focused && e.KeyChar == (char)Keys.Enter)
                 {
                     PSSearchButton.PerformClick();
@@ -528,6 +551,8 @@ namespace ProcedureSearch
             PSResultsListBox.SelectedItem = PSResultsListBox.Items[0];                        
             Logger.Log($"Found process sheet for {ProductNumber}", rt, true);
         }
+        
+
 
         private void TPSerialEntryComboBox_TextChanged(object sender, EventArgs e)
         {

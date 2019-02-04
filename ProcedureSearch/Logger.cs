@@ -27,7 +27,7 @@ namespace ProcedureSearch
             else
                 box.AppendText(Environment.NewLine + message, Color.Black);
 
-            if (writeToFile)
+            if (writeToFile && File.Exists(LOGFILE_PATH))
             {
                 try
                 {
@@ -67,7 +67,7 @@ namespace ProcedureSearch
             else
                 box.AppendText(Environment.NewLine + message, color);
 
-            if (writeToFile)
+            if (writeToFile && File.Exists(LOGFILE_PATH))
             {
                 try
                 {
