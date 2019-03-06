@@ -406,7 +406,7 @@ namespace ProcedureSearch
             TPFilenameTextbox.Clear();
             TPDateTextbox.Clear();
             TPResultsListBox.Items.Clear();
-            Regex rx = new Regex("[^a-zA-Z0-9]");
+            Regex rx = new Regex("[^a-zA-Z0-9-]");
             TPSerialEntryComboBox.Text = rx.Replace(TPSerialEntryComboBox.Text, "");
             var Serial = TPSerialEntryComboBox.Text;
 
@@ -606,7 +606,7 @@ namespace ProcedureSearch
             PSFilenameTextbox.Clear();
             PSDateTextbox.Clear();
             PSResultsListBox.Items.Clear();
-            Regex rx = new Regex("[^a-zA-Z0-9]");
+            Regex rx = new Regex("[^a-zA-Z0-9-]");
             PSSerialEntryComboBox.Text = rx.Replace(PSSerialEntryComboBox.Text, "");
             var Serial = PSSerialEntryComboBox.Text;
 
