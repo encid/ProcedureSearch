@@ -51,7 +51,7 @@ namespace ProcedureSearch
             this.PSOpenButton = new System.Windows.Forms.Button();
             this.label3 = new System.Windows.Forms.Label();
             this.PSDateTextbox = new System.Windows.Forms.TextBox();
-            this.PSFileNameTextbox = new System.Windows.Forms.TextBox();
+            this.PSFilenameTextbox = new System.Windows.Forms.TextBox();
             this.groupBox1 = new System.Windows.Forms.GroupBox();
             this.PSResultsListBox = new System.Windows.Forms.ListBox();
             this.groupBox2 = new System.Windows.Forms.GroupBox();
@@ -245,7 +245,7 @@ namespace ProcedureSearch
             this.tabPage1.Controls.Add(this.PSOpenButton);
             this.tabPage1.Controls.Add(this.label3);
             this.tabPage1.Controls.Add(this.PSDateTextbox);
-            this.tabPage1.Controls.Add(this.PSFileNameTextbox);
+            this.tabPage1.Controls.Add(this.PSFilenameTextbox);
             this.tabPage1.Controls.Add(this.groupBox1);
             this.tabPage1.Controls.Add(this.groupBox2);
             this.tabPage1.Location = new System.Drawing.Point(4, 25);
@@ -312,13 +312,13 @@ namespace ProcedureSearch
             this.PSDateTextbox.Size = new System.Drawing.Size(154, 23);
             this.PSDateTextbox.TabIndex = 10;
             // 
-            // PSFileNameTextbox
+            // PSFilenameTextbox
             // 
-            this.PSFileNameTextbox.Location = new System.Drawing.Point(123, 263);
-            this.PSFileNameTextbox.Name = "PSFileNameTextbox";
-            this.PSFileNameTextbox.ReadOnly = true;
-            this.PSFileNameTextbox.Size = new System.Drawing.Size(154, 23);
-            this.PSFileNameTextbox.TabIndex = 9;
+            this.PSFilenameTextbox.Location = new System.Drawing.Point(123, 263);
+            this.PSFilenameTextbox.Name = "PSFilenameTextbox";
+            this.PSFilenameTextbox.ReadOnly = true;
+            this.PSFilenameTextbox.Size = new System.Drawing.Size(154, 23);
+            this.PSFilenameTextbox.TabIndex = 9;
             // 
             // groupBox1
             // 
@@ -389,9 +389,9 @@ namespace ProcedureSearch
             this.label7.Font = new System.Drawing.Font("Tahoma", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.label7.Location = new System.Drawing.Point(206, 49);
             this.label7.Name = "label7";
-            this.label7.Size = new System.Drawing.Size(152, 14);
+            this.label7.Size = new System.Drawing.Size(148, 14);
             this.label7.TabIndex = 10;
-            this.label7.Text = "Version 1.0.3  -  2/4/2019";
+            this.label7.Text = "Version 1.0.3  - 3/6/2019";
             // 
             // pictureBox2
             // 
@@ -478,7 +478,7 @@ namespace ProcedureSearch
         private Label label2;
         private Label label3;
         private TextBox PSDateTextbox;
-        private TextBox PSFileNameTextbox;
+        private TextBox PSFilenameTextbox;
         private Label label4;
         private Label label5;
         private PictureBox pictureBox1;

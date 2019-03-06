@@ -13,7 +13,7 @@ using System.Windows.Forms;
 namespace ProcedureSearch
 {
     public partial class Main : Form
-    { 
+    {
         public string VAULT_PATH = ConfigurationManager.AppSettings["VAULT_PATH"];
         public string IID_DATABASE_PATH = ConfigurationManager.AppSettings["IID_DATABASE_PATH"];
         public string LOGFILE_PATH = ConfigurationManager.AppSettings["LOGFILE_PATH"];
@@ -63,16 +63,16 @@ namespace ProcedureSearch
 
         private void Main_Load(object sender, EventArgs e)
         {
-            //set default config values if config file doesn't load
-            if (VAULT_PATH == null)
+            //set default config values if paths are null or empty (config file didn't load)
+            if (string.IsNullOrEmpty(VAULT_PATH))
             {
                 VAULT_PATH = @"\\pandora\vault";
             }
-            if (IID_DATABASE_PATH == null)
+            if (string.IsNullOrEmpty(IID_DATABASE_PATH))
             {
                 IID_DATABASE_PATH = @"\\ares\shared\Operations\Test Engineering\Test Softwares\ProcedureSearch\ProductCodesMaster.mdb";
             }
-            if (LOGFILE_PATH == null)
+            if (string.IsNullOrEmpty(LOGFILE_PATH))
             {
                 LOGFILE_PATH = @"\\ares\shared\Operations\Test Engineering\Test Softwares\ProcedureSearch\log.txt";
             }
@@ -220,6 +220,7 @@ namespace ProcedureSearch
             List<string> DocumentList = new List<string>();
             string ProductNumber = input;
             string dir;
+            string ProductPrefix = "";
             try
             {
                 if (IsSerial)
@@ -233,10 +234,19 @@ namespace ProcedureSearch
                     return new Product(input, DocumentList);
                 }
 
-                // get first 3 digits of product number to determine what type of part
-                var ProductPrefix = ProductNumber.Substring(0, 3);
+                // get first 2 or 3 digits of product number to determine what type of part
+                // 2 digits for G- and E- series, 3 digits for all others
+                if (ProductNumber.StartsWith("G", StringComparison.CurrentCulture) || ProductNumber.StartsWith("E", StringComparison.CurrentCulture))
+                {
+                    ProductPrefix = ProductNumber.Substring(0, 2);
+                }
+                else
+                {
+                    ProductPrefix = ProductNumber.Substring(0, 3);
+                }
+                
                 // remove first 4 characters of product number to get assembly number
-                var AssemblyNumber = ProductNumber.Remove(0, 4);
+                //var AssemblyNumber = ProductNumber.Remove(0, 4);
                 switch (ProductPrefix)
                 {
                     case "213":
@@ -244,58 +254,74 @@ namespace ProcedureSearch
                         dir = ($@"{VAULT_PATH}\Operations_Documents\PROCESS SHEETS\213-xxxxx_Assy_Mech\" + ProductNumber.Substring(0, 9));
                         break;
                     }
-
                     case "216":
                     {
                         dir = ($@"{VAULT_PATH}\Operations_Documents\PROCESS SHEETS\216-xxxxx_PCB_Assy_Part_List\" + ProductNumber.Substring(0, 9));
                         break;
                     }
-
                     case "221":
                     {
                         dir = ($@"{VAULT_PATH}\Operations_Documents\PROCESS SHEETS\221-xxxxx_Internal_Harness\" + ProductNumber.Substring(0, 9));
                         break;
                     }
-
                     case "222":
                     {
                         dir = ($@"{VAULT_PATH}\Operations_Documents\PROCESS SHEETS\222-xxxxx_Extnl_Harness_Cable\" + ProductNumber.Substring(0, 9));
                         break;
                     }
-
                     case "230":
                     {
                         dir = ($@"{VAULT_PATH}\Operations_Documents\PROCESS SHEETS\230-xxxxx_Modified_Altered_Items\" + ProductNumber.Substring(0, 9));
                         break;
                     }
-
                     case "231":
                     {
                         dir = ($@"{VAULT_PATH}\Operations_Documents\PROCESS SHEETS\231-xxxxx_Shipping_Final_Assy\" + ProductNumber.Substring(0, 9));
                         break;
                     }
-
                     case "233":
                     {
                         dir = ($@"{VAULT_PATH}\Operations_Documents\PROCESS SHEETS\233-xxxxx_Final_Comp_Assy\" + ProductNumber.Substring(0, 9));
                         break;
                     }
-
                     case "516":
                     {
                         dir = ($@"{VAULT_PATH}\Operations_Documents\PROCESS SHEETS\516-xxxxx_Prototype_PCB\" + ProductNumber.Substring(0, 9));
                         break;
                     }
-
                     case "531":
                     {
                         dir = ($@"{VAULT_PATH}\Operations_Documents\PROCESS SHEETS\531-xxxxx_Shipping_Final_Assy\" + ProductNumber.Substring(0, 9));
                         break;
                     }
-
                     case "533":
                     {
                         dir = ($@"{VAULT_PATH}\Operations_Documents\PROCESS SHEETS\533-Prototype_Final_Assy\" + ProductNumber.Substring(0, 9));
+                        break;
+                    }
+                    case "G0":
+                    {
+                        dir = ($@"{VAULT_PATH}\Operations_Documents\PROCESS SHEETS\G_SERIES\");
+                        break;
+                    }
+                    case "G5":
+                    {
+                        dir = ($@"{VAULT_PATH}\Operations_Documents\PROCESS SHEETS\G_SERIES\");
+                        break;
+                    }
+                    case "G6":
+                    {
+                        dir = ($@"{VAULT_PATH}\Operations_Documents\PROCESS SHEETS\G_SERIES\");
+                        break;
+                    }
+                    case "E5":
+                    {
+                        dir = ($@"{VAULT_PATH}\Operations_Documents\PROCESS SHEETS\E_SERIES\PROCESS_SHEETS\");
+                        break;
+                    }
+                    case "E6":
+                    {
+                        dir = ($@"{VAULT_PATH}\Operations_Documents\PROCESS SHEETS\E_SERIES\PROCESS_SHEETS\");
                         break;
                     }
 
@@ -309,13 +335,19 @@ namespace ProcedureSearch
                 {
                     return new Product(ProductNumber, DocumentList);
                 }
-
+                
                 // get all pdfs matching part number
                 var files = Directory.EnumerateFiles(dir, "*" + ProductNumber + "*" + ".pdf", SearchOption.AllDirectories);
+                // if E series, force add the catch-all pdf process sheet for all E-series products to the files variable
+                if (dir.Contains("E_SERIES"))
+                {
+                    files = Directory.EnumerateFiles(dir, "*" + "DIGITAL E5 AND E6" + "*" + ".pdf", SearchOption.AllDirectories);
+                }
                 if (!files.Any())
                     files = Directory.EnumerateFiles(dir, ProductNumber.Substring(0, 9) + "-XX" + "*" + ".pdf", SearchOption.AllDirectories);
                 if (!files.Any())
                     files = Directory.EnumerateFiles(dir, ProductNumber.Substring(0, 9) + "-ALL" + "*" + ".pdf", SearchOption.AllDirectories);
+                
                 if (!files.Any())
                     return new Product(ProductNumber, DocumentList);
 
@@ -375,8 +407,8 @@ namespace ProcedureSearch
             TPDateTextbox.Clear();
             TPResultsListBox.Items.Clear();
             Regex rx = new Regex("[^a-zA-Z0-9]");
+            TPSerialEntryComboBox.Text = rx.Replace(TPSerialEntryComboBox.Text, "");
             var Serial = TPSerialEntryComboBox.Text;
-            //Serial = rx.Replace(TPSerialEntryComboBox.Text, "");
 
             if (Serial.Length < 3 || (Serial.Contains('-') && Serial.Length < 9))
             {
@@ -474,11 +506,11 @@ namespace ProcedureSearch
             var input = (string)e.Argument;
             if (input.Contains("-"))
             {
-                product = FindProcedures((string)e.Argument, false);
+                product = FindProcedures(input, false);
             }
             else
             {
-                product = FindProcedures((string)e.Argument, true);
+                product = FindProcedures(input, true);
             }
             e.Result = product;
         }
@@ -514,13 +546,14 @@ namespace ProcedureSearch
         {
             Product product;
             var input = (string)e.Argument;
-            if (input.Contains("-"))
+            // if input contains "-", or starts with G or E, it is not a serial number.
+            if (input.Contains("-") || input.StartsWith("G", StringComparison.CurrentCulture) || input.StartsWith("E", StringComparison.CurrentCulture))
             {
-                product = FindProcessSheets((string)e.Argument, false);
+                product = FindProcessSheets(input, false);
             }
             else
             {
-                product = FindProcessSheets((string)e.Argument, true);
+                product = FindProcessSheets(input, true);
             }
             e.Result = product;
         }
@@ -533,7 +566,7 @@ namespace ProcedureSearch
             var product = (Product)e.Result;
             string ProductNumber = product.ProductNumber;
             List<string> ProceduresList = product.DocumentList;
-            PSFileNameTextbox.Text = ProductNumber;
+            PSFilenameTextbox.Text = ProductNumber;
             PSSerialEntryComboBox.Focus();
 
             if (!ProceduresList.Any())
@@ -550,10 +583,8 @@ namespace ProcedureSearch
 
             PSResultsListBox.SelectedItem = PSResultsListBox.Items[0];                        
             Logger.Log($"Found process sheet for {ProductNumber}", rt, true);
-        }
+        }      
         
-
-
         private void TPSerialEntryComboBox_TextChanged(object sender, EventArgs e)
         {
             var currPos = TPSerialEntryComboBox.SelectionStart;
@@ -572,12 +603,12 @@ namespace ProcedureSearch
         {
             if (PSBWorker.IsBusy) return;
 
-            PSFileNameTextbox.Clear();
+            PSFilenameTextbox.Clear();
             PSDateTextbox.Clear();
             PSResultsListBox.Items.Clear();
             Regex rx = new Regex("[^a-zA-Z0-9]");
+            PSSerialEntryComboBox.Text = rx.Replace(PSSerialEntryComboBox.Text, "");
             var Serial = PSSerialEntryComboBox.Text;
-            //Serial = rx.Replace(PSSerialEntryComboBox.Text, "");
 
             if (Serial.Length < 3 || (Serial.Contains('-') && Serial.Length < 9))
             {
@@ -611,15 +642,15 @@ namespace ProcedureSearch
         private void TPResultsListBox_SelectedValueChanged(object sender, EventArgs e)
         {   
             var f = new FileInfo(TPResultsListBox.SelectedItem.ToString());
-            TPDateTextbox.Text = f.LastWriteTime.ToShortDateString();
-            TPFilenameTextbox.Text = f.Name.Substring(0, 12);
+            TPDateTextbox.Text = f.LastWriteTime.ToShortDateString();            
+            TPFilenameTextbox.Text = f.Name.Substring(0, f.Name.IndexOf(" ", StringComparison.CurrentCulture));
         }
 
         private void PSResultsListBox_SelectedValueChanged(object sender, EventArgs e)
         {
             var f = new FileInfo(PSResultsListBox.SelectedItem.ToString());
-            PSDateTextbox.Text = f.LastWriteTime.ToShortDateString();
-            PSFileNameTextbox.Text = f.Name.Substring(0, 12);
+            PSDateTextbox.Text = f.LastWriteTime.ToShortDateString();            
+            PSFilenameTextbox.Text = f.Name.Substring(0, f.Name.IndexOf(" ", StringComparison.CurrentCulture));
         }
 
         private void Main_FormClosing(object sender, FormClosingEventArgs e)
