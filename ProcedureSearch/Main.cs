@@ -18,8 +18,8 @@ namespace ProcedureSearch
         public string IID_DATABASE_PATH = ConfigurationManager.AppSettings["IID_DATABASE_PATH"];
         public string LOGFILE_PATH = ConfigurationManager.AppSettings["LOGFILE_PATH"];
         SearchingProgressForm SearchingForm = new SearchingProgressForm();
-        BackgroundWorker TPBWorker = new BackgroundWorker();
-        BackgroundWorker PSBWorker = new BackgroundWorker();
+        BackgroundWorker TPBWorker;
+        BackgroundWorker PSBWorker;
 
         class Product
         {
@@ -42,13 +42,19 @@ namespace ProcedureSearch
         private void InitializeEventHandlers()
         {
             // initialize backgroundworkers
-            TPBWorker.WorkerReportsProgress = true;
-            TPBWorker.WorkerSupportsCancellation = true;
+            TPBWorker = new BackgroundWorker
+            {
+                WorkerReportsProgress = true,
+                WorkerSupportsCancellation = true            
+            };
             TPBWorker.DoWork += TPBWorker_DoWork;
             TPBWorker.RunWorkerCompleted += TPBWorker_RunWorkerCompleted;
 
-            PSBWorker.WorkerReportsProgress = true;
-            PSBWorker.WorkerSupportsCancellation = true;
+            PSBWorker = new BackgroundWorker
+            {
+                WorkerReportsProgress = true,
+                WorkerSupportsCancellation = true
+            };
             PSBWorker.DoWork += PSBWorker_DoWork;
             PSBWorker.RunWorkerCompleted += PSBWorker_RunWorkerCompleted;
 
@@ -137,7 +143,7 @@ namespace ProcedureSearch
             return product;
         }
 
-        private Product FindProcedures(string input, bool IsSerial)
+        private List<string> GetProcedures(string input, bool IsSerial)
         {
             List<string> DocumentList = new List<string>();
             string ProductNumber = input;
@@ -152,7 +158,7 @@ namespace ProcedureSearch
 
                 if (ProductNumber == "")
                 {
-                    return new Product(input, DocumentList);
+                    return DocumentList;
                 }
                 
                 // get first 3 digits of product number to determine if final assy or sub assy
@@ -176,13 +182,13 @@ namespace ProcedureSearch
 
                     default:
                     {
-                        return new Product(ProductNumber, DocumentList);
+                        return DocumentList;
                     }
                 }
 
                 if (!Directory.Exists(dir))
                 {
-                    return new Product(ProductNumber, DocumentList);
+                    return DocumentList;
                 }
                 
                 var files = Directory.EnumerateFiles(dir, "*" + AssemblyNumber + "*", SearchOption.AllDirectories);
@@ -206,16 +212,16 @@ namespace ProcedureSearch
                     }
                 }
 
-                return new Product(ProductNumber, DocumentList);
+                return DocumentList;
             }
             catch (Exception ex)
             {
                 ExecuteSecure(() => Logger.Log("An error has occured: " + ex.Message, rt, Color.Red, true));
-                return new Product(ProductNumber, DocumentList);
+                return DocumentList;
             }
         }
 
-        private Product FindProcessSheets(string input, bool IsSerial)
+        private List<string> GetProcessSheets(string input, bool IsSerial)
         {
             List<string> DocumentList = new List<string>();
             string ProductNumber = input;
@@ -231,14 +237,16 @@ namespace ProcedureSearch
                 
                 if (ProductNumber == "")
                 {
-                    return new Product(input, DocumentList);
+                    return DocumentList;
                 }
 
                 // get first 2 or 3 digits of product number to determine what type of part
                 // 2 digits for G- and E- series, 3 digits for all others
-                if (ProductNumber.StartsWith("G", StringComparison.CurrentCulture) || ProductNumber.StartsWith("E", StringComparison.CurrentCulture))
+                if (ProductNumber.StartsWith("G", StringComparison.CurrentCulture) || 
+                    ProductNumber.StartsWith("E", StringComparison.CurrentCulture) ||
+                    ProductNumber.StartsWith("V", StringComparison.CurrentCulture))
                 {
-                    ProductPrefix = ProductNumber.Substring(0, 2);
+                    ProductPrefix = ProductNumber.Substring(0, 1);
                 }
                 else
                 {
@@ -299,41 +307,32 @@ namespace ProcedureSearch
                         dir = ($@"{VAULT_PATH}\Operations_Documents\PROCESS SHEETS\533-Prototype_Final_Assy\" + ProductNumber.Substring(0, 9));
                         break;
                     }
-                    case "G0":
+                    case "G":
                     {
                         dir = ($@"{VAULT_PATH}\Operations_Documents\PROCESS SHEETS\G_SERIES\");
                         break;
                     }
-                    case "G5":
-                    {
-                        dir = ($@"{VAULT_PATH}\Operations_Documents\PROCESS SHEETS\G_SERIES\");
-                        break;
-                    }
-                    case "G6":
-                    {
-                        dir = ($@"{VAULT_PATH}\Operations_Documents\PROCESS SHEETS\G_SERIES\");
-                        break;
-                    }
-                    case "E5":
+                    case "E":
                     {
                         dir = ($@"{VAULT_PATH}\Operations_Documents\PROCESS SHEETS\E_SERIES\PROCESS_SHEETS\");
                         break;
                     }
-                    case "E6":
+                    case "V":
                     {
-                        dir = ($@"{VAULT_PATH}\Operations_Documents\PROCESS SHEETS\E_SERIES\PROCESS_SHEETS\");
+                        dir = ($@"{VAULT_PATH}\Operations_Documents\PROCESS SHEETS\V_SERIES\PROCESS_SHEETS\");
                         break;
                     }
 
                     default:
                     {
-                        return new Product(ProductNumber, DocumentList);
+                        return DocumentList;
                     }
                 }
+                MessageBox.Show(dir);
                 // make sure dir exists
                 if (!Directory.Exists(dir))
                 {
-                    return new Product(ProductNumber, DocumentList);
+                    return DocumentList;
                 }
                 
                 // get all pdfs matching part number
@@ -349,7 +348,7 @@ namespace ProcedureSearch
                     files = Directory.EnumerateFiles(dir, ProductNumber.Substring(0, 9) + "-ALL" + "*" + ".pdf", SearchOption.AllDirectories);
                 
                 if (!files.Any())
-                    return new Product(ProductNumber, DocumentList);
+                    return DocumentList;
 
                 var fileinfo = new List<FileInfo>();
                 foreach (var f in files)
@@ -366,12 +365,12 @@ namespace ProcedureSearch
                     DocumentList.Add(fileinfo.OrderByDescending(f => f.LastWriteTime).FirstOrDefault().ToString());
                 }
 
-                return new Product(ProductNumber, DocumentList);
+                return DocumentList;
             }
             catch (Exception ex)
             {
                 ExecuteSecure(() => Logger.Log("An error has occured: "+ ex.TargetSite + " - " + ex.Message, rt, Color.Red, true));
-                return new Product(ProductNumber, DocumentList);
+                return DocumentList;
             }            
         }
 
@@ -452,11 +451,6 @@ namespace ProcedureSearch
                     e.Handled = true;
                     return;
                 }
-                if (e.KeyChar == '[')
-                {
-                    TPSerialEntryComboBox.SelectAll();
-                    e.KeyChar = (char)Keys.None;
-                }
                 if (e.KeyChar == ']')
                 {
                     e.KeyChar = (char)Keys.None;
@@ -486,11 +480,6 @@ namespace ProcedureSearch
                     e.Handled = true;
                     return;
                 }
-                if (e.KeyChar == '[')
-                {
-                    PSSerialEntryComboBox.SelectAll();
-                    e.KeyChar = (char)Keys.None;
-                }
                 if (e.KeyChar == ']')
                 {
                     e.KeyChar = (char)Keys.None;
@@ -502,16 +491,17 @@ namespace ProcedureSearch
 
         private void TPBWorker_DoWork(object sender, DoWorkEventArgs e)
         {
-            Product product;
+            List<string> procedures;
             var input = (string)e.Argument;
             if (input.Contains("-"))
             {
-                product = FindProcedures(input, false);
+                procedures = GetProcedures(input, false);
             }
             else
             {
-                product = FindProcedures(input, true);
+                procedures = GetProcedures(input, true);
             }
+            var product = new Product(input, procedures);
             e.Result = product;
         }
 
@@ -544,17 +534,21 @@ namespace ProcedureSearch
 
         private void PSBWorker_DoWork(object sender, DoWorkEventArgs e)
         {
-            Product product;
+            List<string> procedures;            
             var input = (string)e.Argument;
             // if input contains "-", or starts with G or E, it is not a serial number.
-            if (input.Contains("-") || input.StartsWith("G", StringComparison.CurrentCulture) || input.StartsWith("E", StringComparison.CurrentCulture))
+            if (input.Contains("-") || 
+                input.StartsWith("G", StringComparison.CurrentCulture) || 
+                input.StartsWith("E", StringComparison.CurrentCulture) ||
+                input.StartsWith("V", StringComparison.CurrentCulture))
             {
-                product = FindProcessSheets(input, false);
+                procedures = GetProcessSheets(input, false);
             }
             else
             {
-                product = FindProcessSheets(input, true);
+                procedures = GetProcessSheets(input, true);
             }
+            var product = new Product(input, procedures);
             e.Result = product;
         }
 

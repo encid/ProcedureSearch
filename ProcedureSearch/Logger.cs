@@ -7,7 +7,7 @@ using System.Configuration;
 namespace ProcedureSearch
 {
     public static class Logger
-    {        
+    {   
         /// <summary>
         /// Write a message to the status log textbox, with default black foreground text color.
         /// </summary>
@@ -95,7 +95,9 @@ namespace ProcedureSearch
             var time = $"{DateTime.Now:hh:mm:sstt}";
             var loginStr = System.Security.Principal.WindowsIdentity.GetCurrent().Name;
             var compNameStr = Environment.MachineName;
-            w.WriteLine($"{date} {time}, {compNameStr}, {loginStr}, {message}");
+            var version = Application.ProductVersion;
+
+            w.WriteLine($"{date} {time}, v.{version}, {compNameStr}, {loginStr}, {message}");
         }
     }
 }
