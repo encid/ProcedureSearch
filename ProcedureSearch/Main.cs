@@ -328,7 +328,7 @@ namespace ProcedureSearch
                         return DocumentList;
                     }
                 }
-                MessageBox.Show(dir);
+
                 // make sure dir exists
                 if (!Directory.Exists(dir))
                 {
