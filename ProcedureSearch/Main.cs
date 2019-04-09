@@ -17,6 +17,7 @@ namespace ProcedureSearch
         public string VAULT_PATH = ConfigurationManager.AppSettings["VAULT_PATH"];
         public string IID_DATABASE_PATH = ConfigurationManager.AppSettings["IID_DATABASE_PATH"];
         public string LOGFILE_PATH = ConfigurationManager.AppSettings["LOGFILE_PATH"];
+        public string UNRELEASED_DOCS_PATH = ConfigurationManager.AppSettings["UNRELEASED_DOCS_PATH"];
         SearchingProgressForm SearchingForm = new SearchingProgressForm();
         BackgroundWorker TPBWorker;
         BackgroundWorker PSBWorker;
@@ -76,13 +77,17 @@ namespace ProcedureSearch
             }
             if (string.IsNullOrEmpty(IID_DATABASE_PATH))
             {
-                IID_DATABASE_PATH = @"\\ares\shared\Operations\Test Engineering\Test Softwares\ProcedureSearch\ProductCodesMaster.mdb";
+                IID_DATABASE_PATH = @"\\kb-fp02\shared\Operations\Test Engineering\Test Softwares\ProcedureSearch\ProductCodesMaster.mdb";
             }
             if (string.IsNullOrEmpty(LOGFILE_PATH))
             {
-                LOGFILE_PATH = @"\\ares\shared\Operations\Test Engineering\Test Softwares\ProcedureSearch\log.txt";
+                LOGFILE_PATH = @"\\kb-fp02\shared\Operations\Test Engineering\Test Softwares\ProcedureSearch\log.txt";
             }
-
+            if (string.IsNullOrEmpty(UNRELEASED_DOCS_PATH))
+            {
+                UNRELEASED_DOCS_PATH = @"\\kb-fp02\shared\Operations\Test Engineering\Documents ready for release";
+            }
+            
             SearchingForm.Hide();
 
             Logger.Log("Program loaded, ready to search.", rt, true);
@@ -109,7 +114,7 @@ namespace ProcedureSearch
             }
             catch (Exception ex)
             {
-                Logger.Log("Error: " + ex.Message, rt, Color.Red, true);
+                Logger.Log($"Error: {ex.Message}", rt, Color.Red, true);
             }
         }
 
@@ -136,7 +141,7 @@ namespace ProcedureSearch
             }
             catch (Exception ex)
             {
-                ExecuteSecure(() => Logger.Log("An error has occured with IID database: " + ex.Message, rt, Color.Red, true));
+                ExecuteSecure(() => Logger.Log($"An error has occured with IID database: {ex.Message}", rt, Color.Red, true));
                 return product;
             }
             
@@ -191,15 +196,14 @@ namespace ProcedureSearch
                     return DocumentList;
                 }
                 
-                var files = Directory.EnumerateFiles(dir, "*" + AssemblyNumber + "*", SearchOption.AllDirectories);
+                var files = Directory.EnumerateFiles(dir, $"*{AssemblyNumber}*", SearchOption.AllDirectories);
                 // if no matches, check for -XX files
                 if (!files.Any())
-                    files = Directory.EnumerateFiles(dir, "*" + AssemblyNumber.Substring(0, 5) + "-XX" + "*", SearchOption.AllDirectories);
+                    files = Directory.EnumerateFiles(dir, $"*{AssemblyNumber.Substring(0, 5)}-XX*", SearchOption.AllDirectories);
                 //if no matches again, check in to-be-released test engineering folder
                 if (!files.Any())
-                {
-                    dir = $@"\\ares\shared\Operations\Test Engineering\Documents ready for release";
-                    files = Directory.EnumerateFiles(dir, "*" + AssemblyNumber + "*", SearchOption.AllDirectories);
+                {                    
+                    files = Directory.EnumerateFiles(UNRELEASED_DOCS_PATH, $"*{AssemblyNumber}*", SearchOption.AllDirectories);
                 }
 
                 foreach (var f in files)
@@ -216,7 +220,7 @@ namespace ProcedureSearch
             }
             catch (Exception ex)
             {
-                ExecuteSecure(() => Logger.Log("An error has occured: " + ex.Message, rt, Color.Red, true));
+                ExecuteSecure(() => Logger.Log($"An error has occured: {ex.Message}", rt, Color.Red, true));
                 return DocumentList;
             }
         }
@@ -259,52 +263,52 @@ namespace ProcedureSearch
                 {
                     case "213":
                     {
-                        dir = ($@"{VAULT_PATH}\Operations_Documents\PROCESS SHEETS\213-xxxxx_Assy_Mech\" + ProductNumber.Substring(0, 9));
+                        dir = ($@"{VAULT_PATH}\Operations_Documents\PROCESS SHEETS\213-xxxxx_Assy_Mech\{ProductNumber.Substring(0, 9)}");
                         break;
                     }
                     case "216":
                     {
-                        dir = ($@"{VAULT_PATH}\Operations_Documents\PROCESS SHEETS\216-xxxxx_PCB_Assy_Part_List\" + ProductNumber.Substring(0, 9));
+                        dir = ($@"{VAULT_PATH}\Operations_Documents\PROCESS SHEETS\216-xxxxx_PCB_Assy_Part_List\{ProductNumber.Substring(0, 9)}");
                         break;
                     }
                     case "221":
                     {
-                        dir = ($@"{VAULT_PATH}\Operations_Documents\PROCESS SHEETS\221-xxxxx_Internal_Harness\" + ProductNumber.Substring(0, 9));
+                        dir = ($@"{VAULT_PATH}\Operations_Documents\PROCESS SHEETS\221-xxxxx_Internal_Harness\{ProductNumber.Substring(0, 9)}");
                         break;
                     }
                     case "222":
                     {
-                        dir = ($@"{VAULT_PATH}\Operations_Documents\PROCESS SHEETS\222-xxxxx_Extnl_Harness_Cable\" + ProductNumber.Substring(0, 9));
+                        dir = ($@"{VAULT_PATH}\Operations_Documents\PROCESS SHEETS\222-xxxxx_Extnl_Harness_Cable\{ProductNumber.Substring(0, 9)}");
                         break;
                     }
                     case "230":
                     {
-                        dir = ($@"{VAULT_PATH}\Operations_Documents\PROCESS SHEETS\230-xxxxx_Modified_Altered_Items\" + ProductNumber.Substring(0, 9));
+                        dir = ($@"{VAULT_PATH}\Operations_Documents\PROCESS SHEETS\230-xxxxx_Modified_Altered_Items\{ProductNumber.Substring(0, 9)}");
                         break;
                     }
                     case "231":
                     {
-                        dir = ($@"{VAULT_PATH}\Operations_Documents\PROCESS SHEETS\231-xxxxx_Shipping_Final_Assy\" + ProductNumber.Substring(0, 9));
+                        dir = ($@"{VAULT_PATH}\Operations_Documents\PROCESS SHEETS\231-xxxxx_Shipping_Final_Assy\{ProductNumber.Substring(0, 9)}");
                         break;
                     }
                     case "233":
                     {
-                        dir = ($@"{VAULT_PATH}\Operations_Documents\PROCESS SHEETS\233-xxxxx_Final_Comp_Assy\" + ProductNumber.Substring(0, 9));
+                        dir = ($@"{VAULT_PATH}\Operations_Documents\PROCESS SHEETS\233-xxxxx_Final_Comp_Assy\{ProductNumber.Substring(0, 9)}");
                         break;
                     }
                     case "516":
                     {
-                        dir = ($@"{VAULT_PATH}\Operations_Documents\PROCESS SHEETS\516-xxxxx_Prototype_PCB\" + ProductNumber.Substring(0, 9));
+                        dir = ($@"{VAULT_PATH}\Operations_Documents\PROCESS SHEETS\516-xxxxx_Prototype_PCB\{ProductNumber.Substring(0, 9)}");
                         break;
                     }
                     case "531":
                     {
-                        dir = ($@"{VAULT_PATH}\Operations_Documents\PROCESS SHEETS\531-xxxxx_Shipping_Final_Assy\" + ProductNumber.Substring(0, 9));
+                        dir = ($@"{VAULT_PATH}\Operations_Documents\PROCESS SHEETS\531-xxxxx_Shipping_Final_Assy\{ProductNumber.Substring(0, 9)}");
                         break;
                     }
                     case "533":
                     {
-                        dir = ($@"{VAULT_PATH}\Operations_Documents\PROCESS SHEETS\533-Prototype_Final_Assy\" + ProductNumber.Substring(0, 9));
+                        dir = ($@"{VAULT_PATH}\Operations_Documents\PROCESS SHEETS\533-Prototype_Final_Assy\{ProductNumber.Substring(0, 9)}");
                         break;
                     }
                     case "G":
@@ -336,16 +340,16 @@ namespace ProcedureSearch
                 }
                 
                 // get all pdfs matching part number
-                var files = Directory.EnumerateFiles(dir, "*" + ProductNumber + "*" + ".pdf", SearchOption.AllDirectories);
+                var files = Directory.EnumerateFiles(dir, $"*{ProductNumber}*.pdf", SearchOption.AllDirectories);
                 // if E series, force add the catch-all pdf process sheet for all E-series products to the files variable
                 if (dir.Contains("E_SERIES"))
                 {
-                    files = Directory.EnumerateFiles(dir, "*" + "DIGITAL E5 AND E6" + "*" + ".pdf", SearchOption.AllDirectories);
+                    files = Directory.EnumerateFiles(dir, $"*DIGITAL E5 AND E6*.pdf", SearchOption.AllDirectories);
                 }
                 if (!files.Any())
-                    files = Directory.EnumerateFiles(dir, ProductNumber.Substring(0, 9) + "-XX" + "*" + ".pdf", SearchOption.AllDirectories);
+                    files = Directory.EnumerateFiles(dir, $"*{ProductNumber.Substring(0, 9)}-XX*.pdf", SearchOption.AllDirectories);
                 if (!files.Any())
-                    files = Directory.EnumerateFiles(dir, ProductNumber.Substring(0, 9) + "-ALL" + "*" + ".pdf", SearchOption.AllDirectories);
+                    files = Directory.EnumerateFiles(dir, $"*{ProductNumber.Substring(0, 9)}-ALL*.pdf", SearchOption.AllDirectories);
                 
                 if (!files.Any())
                     return DocumentList;
@@ -369,7 +373,7 @@ namespace ProcedureSearch
             }
             catch (Exception ex)
             {
-                ExecuteSecure(() => Logger.Log("An error has occured: "+ ex.TargetSite + " - " + ex.Message, rt, Color.Red, true));
+                ExecuteSecure(() => Logger.Log($"An error has occured: {ex.TargetSite} - {ex.Message}", rt, Color.Red, true));
                 return DocumentList;
             }            
         }
@@ -636,15 +640,25 @@ namespace ProcedureSearch
         private void TPResultsListBox_SelectedValueChanged(object sender, EventArgs e)
         {   
             var f = new FileInfo(TPResultsListBox.SelectedItem.ToString());
-            TPDateTextbox.Text = f.LastWriteTime.ToShortDateString();            
-            TPFilenameTextbox.Text = f.Name.Substring(0, f.Name.IndexOf(" ", StringComparison.CurrentCulture));
+            TPDateTextbox.Text = f.LastWriteTime.ToShortDateString();
+
+            // bugfix, some files don't contain spaces
+            if (f.Name.Contains(" "))
+            {
+                TPFilenameTextbox.Text = f.Name.Substring(0, f.Name.IndexOf(" ", StringComparison.CurrentCulture)); 
+            }
         }
 
         private void PSResultsListBox_SelectedValueChanged(object sender, EventArgs e)
         {
             var f = new FileInfo(PSResultsListBox.SelectedItem.ToString());
-            PSDateTextbox.Text = f.LastWriteTime.ToShortDateString();            
-            PSFilenameTextbox.Text = f.Name.Substring(0, f.Name.IndexOf(" ", StringComparison.CurrentCulture));
+            PSDateTextbox.Text = f.LastWriteTime.ToShortDateString();
+
+            // bugfix, some files don't contain spaces
+            if (f.Name.Contains(" "))
+            {
+                PSFilenameTextbox.Text = f.Name.Substring(0, f.Name.IndexOf(" ", StringComparison.CurrentCulture)); 
+            }
         }
 
         private void Main_FormClosing(object sender, FormClosingEventArgs e)
