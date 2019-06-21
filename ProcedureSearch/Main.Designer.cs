@@ -61,6 +61,7 @@ namespace ProcedureSearch
             this.label7 = new System.Windows.Forms.Label();
             this.pictureBox2 = new System.Windows.Forms.PictureBox();
             this.pictureBox1 = new System.Windows.Forms.PictureBox();
+            this.cboxAutoOpenDocs = new System.Windows.Forms.CheckBox();
             this.tabPage3.SuspendLayout();
             this.TPListGroupBox.SuspendLayout();
             this.TPSearchGroupBox.SuspendLayout();
@@ -376,10 +377,10 @@ namespace ProcedureSearch
             // label6
             // 
             this.label6.AutoSize = true;
-            this.label6.Font = new System.Drawing.Font("Tahoma", 9F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.label6.Location = new System.Drawing.Point(164, 29);
+            this.label6.Font = new System.Drawing.Font("Tahoma", 9.75F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.label6.Location = new System.Drawing.Point(157, 9);
             this.label6.Name = "label6";
-            this.label6.Size = new System.Drawing.Size(232, 14);
+            this.label6.Size = new System.Drawing.Size(248, 16);
             this.label6.TabIndex = 9;
             this.label6.Text = "(FAST.) Procedure/Document Search";
             // 
@@ -387,11 +388,11 @@ namespace ProcedureSearch
             // 
             this.label7.AutoSize = true;
             this.label7.Font = new System.Drawing.Font("Tahoma", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.label7.Location = new System.Drawing.Point(209, 50);
+            this.label7.Location = new System.Drawing.Point(212, 28);
             this.label7.Name = "label7";
-            this.label7.Size = new System.Drawing.Size(144, 14);
+            this.label7.Size = new System.Drawing.Size(137, 14);
             this.label7.TabIndex = 10;
-            this.label7.Text = "Version 1.05  - 4/9/2019";
+            this.label7.Text = "Version 1.06  - 6/20/19";
             // 
             // pictureBox2
             // 
@@ -415,12 +416,24 @@ namespace ProcedureSearch
             this.pictureBox1.TabIndex = 7;
             this.pictureBox1.TabStop = false;
             // 
+            // cboxAutoOpenDocs
+            // 
+            this.cboxAutoOpenDocs.AutoSize = true;
+            this.cboxAutoOpenDocs.Font = new System.Drawing.Font("Tahoma", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.cboxAutoOpenDocs.Location = new System.Drawing.Point(180, 61);
+            this.cboxAutoOpenDocs.Name = "cboxAutoOpenDocs";
+            this.cboxAutoOpenDocs.Size = new System.Drawing.Size(202, 20);
+            this.cboxAutoOpenDocs.TabIndex = 11;
+            this.cboxAutoOpenDocs.Text = "Open documents automatically";
+            this.cboxAutoOpenDocs.UseVisualStyleBackColor = true;
+            // 
             // Main
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.SystemColors.Control;
             this.ClientSize = new System.Drawing.Size(560, 601);
+            this.Controls.Add(this.cboxAutoOpenDocs);
             this.Controls.Add(this.label7);
             this.Controls.Add(this.label6);
             this.Controls.Add(this.pictureBox2);
@@ -485,6 +498,7 @@ namespace ProcedureSearch
         private PictureBox pictureBox2;
         private Label label6;
         private Label label7;
+        private CheckBox cboxAutoOpenDocs;
     }
 }
 

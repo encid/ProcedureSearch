@@ -18,6 +18,7 @@ namespace ProcedureSearch
         public string IID_DATABASE_PATH = ConfigurationManager.AppSettings["IID_DATABASE_PATH"];
         public string LOGFILE_PATH = ConfigurationManager.AppSettings["LOGFILE_PATH"];
         public string UNRELEASED_DOCS_PATH = ConfigurationManager.AppSettings["UNRELEASED_DOCS_PATH"];
+        public string AUTO_OPEN_DOC_AFTER_SEARCH = ConfigurationManager.AppSettings["AUTO_OPEN_DOC_AFTER_SEARCH"];
         SearchingProgressForm SearchingForm = new SearchingProgressForm();
         BackgroundWorker TPBWorker;
         BackgroundWorker PSBWorker;
@@ -87,7 +88,13 @@ namespace ProcedureSearch
             {
                 UNRELEASED_DOCS_PATH = @"\\kb-fp02\shared\Operations\Test Engineering\Documents ready for release";
             }
-            
+            if (string.IsNullOrEmpty(AUTO_OPEN_DOC_AFTER_SEARCH))
+            {
+                AUTO_OPEN_DOC_AFTER_SEARCH = "false";
+            }
+            // if config file setting for auto open docs is true, auto open docs checkbox should be checked on program start
+            cboxAutoOpenDocs.Checked = (AUTO_OPEN_DOC_AFTER_SEARCH == "true");
+
             SearchingForm.Hide();
 
             Logger.Log("Program loaded, ready to search.", rt, true);
@@ -148,7 +155,7 @@ namespace ProcedureSearch
             return product;
         }
 
-        private List<string> GetProcedures(string input, bool IsSerial)
+        private List<string> GetProceduresToList(string input, bool IsSerial)
         {
             List<string> DocumentList = new List<string>();
             string ProductNumber = input;
@@ -165,37 +172,59 @@ namespace ProcedureSearch
                 {
                     return DocumentList;
                 }
-                
-                // get first 3 digits of product number to determine if final assy or sub assy
-                var ProductPrefix = ProductNumber.Substring(0, 3);
-                // remove first 4 characters of product number to get assembly number
-                var AssemblyNumber = ProductNumber.Remove(0, 4);
+                // get first 1 or 3 digits of product number to determine what type of part
+                // 1 digit for G- and E- and V- series, 3 digits for all others
+                string ProductPrefix;
+                string AssemblyNumber;
+                if (ProductNumber.StartsWith("G", StringComparison.CurrentCultureIgnoreCase) ||
+                    ProductNumber.StartsWith("E", StringComparison.CurrentCultureIgnoreCase) ||
+                    ProductNumber.StartsWith("V", StringComparison.CurrentCultureIgnoreCase))
+                {
+                    ProductPrefix = ProductNumber.Substring(0, 1);
+                    AssemblyNumber = ProductNumber;
+                }
+                else
+                {
+                    ProductPrefix = ProductNumber.Substring(0, 3);
+                    // remove first 4 characters of product number to get assembly number
+                    AssemblyNumber = ProductNumber.Remove(0, 4);
+                }
                 // find procedure based on first 3 digits
                 switch (ProductPrefix)
                 {
+                    case "213":
+                    {
+                        dir = $@"{VAULT_PATH}\Released_Part_Information\234-xxxxx_Assy_Test_Proc\Standard_Products\234-{AssemblyNumber.Substring(0, 5)}";
+                        break;
+                    }
                     case "231":
                     {
                         dir = $@"{VAULT_PATH}\Released_Part_Information\234-xxxxx_Assy_Test_Proc\Standard_Products\234-{AssemblyNumber.Substring(0, 5)}";
                         break;
                     }
-
                     case "216":
                     {
                         dir = $@"{VAULT_PATH}\Released_Part_Information\225-xxxxx_Proc_Mfg_Test\225-{AssemblyNumber.Substring(0, 5)}";
                         break;
                     }
-
+                    case "V":
+                    {
+                        
+                        var LastFour = ProductNumber.Substring(ProductNumber.Length - 4);
+                        dir = $@"{VAULT_PATH}\Released_Part_Information\234-xxxxx_Assy_Test_Proc\IC-IR-IT-VR-VT_Products\234-{LastFour}-01";
+                        AssemblyNumber = LastFour;
+                        break;
+                    }        
                     default:
                     {
                         return DocumentList;
                     }
                 }
-
+                
                 if (!Directory.Exists(dir))
                 {
                     return DocumentList;
-                }
-                
+                }                
                 var files = Directory.EnumerateFiles(dir, $"*{AssemblyNumber}*", SearchOption.AllDirectories);
                 // if no matches, check for -XX files
                 if (!files.Any())
@@ -225,7 +254,100 @@ namespace ProcedureSearch
             }
         }
 
-        private List<string> GetProcessSheets(string input, bool IsSerial)
+        private List<string> GetProceduresToListUsingSearch(string input, bool IsSerial)
+        {
+            List<string> DocumentList = new List<string>();
+            string ProductNumber = input;
+            string StartDir;
+
+            try
+            {
+                if (IsSerial)
+                {
+                    // Using the IID (first 3 chars) from serial number, find corresponding product number
+                    ProductNumber = GetProductFromIID(input.Substring(0, 3));
+                }
+
+                if (ProductNumber == "")
+                {
+                    return DocumentList;
+                }
+
+                // get first 3 digits of product number to determine if final assy or sub assy
+                var ProductPrefix = ProductNumber.Substring(0, 3);
+                // remove first 4 characters of product number to get assembly number
+                var AssemblyNumber = ProductNumber.Remove(0, 4);
+                // find procedure based on first 3 digits
+                switch (ProductPrefix)
+                {
+                    case "213":
+                    {
+                        StartDir = $@"{VAULT_PATH}\Released_Part_Information\213-xxxxx_Assy_Mech\";
+                        break;
+                    }
+                    case "231":
+                    {
+                        StartDir = $@"{VAULT_PATH}\Released_Part_Information\234-xxxxx_Assy_Test_Proc\Standard_Products\";
+                        break;
+                    }
+
+                    case "216":
+                    {
+                        StartDir = $@"{VAULT_PATH}\Released_Part_Information\225-xxxxx_Proc_Mfg_Test\";
+                        break;
+                    }
+
+                    default:
+                    {
+                        return DocumentList;
+                    }
+                }
+
+                if (!Directory.Exists(StartDir))
+                {
+                    return DocumentList;
+                }
+
+                var dirs = Directory.EnumerateDirectories(StartDir, $"*{ProductNumber.Substring(4, 5)}*", SearchOption.AllDirectories);
+                if (!dirs.Any())
+                {
+                    dirs = Directory.EnumerateDirectories(StartDir, $"*{AssemblyNumber.Substring(0, 5)}-XX*", SearchOption.AllDirectories);
+                }
+
+                if (!dirs.Any())
+                {
+                    dirs = Directory.EnumerateDirectories(UNRELEASED_DOCS_PATH, $"*{AssemblyNumber}*", SearchOption.TopDirectoryOnly);
+                }
+
+                if (!dirs.Any())
+                {
+                    return DocumentList;
+                }
+                IEnumerable<string> files;
+                foreach (var d in dirs)
+                {
+                    files = Directory.GetFiles(d, $"*{AssemblyNumber}*", SearchOption.AllDirectories);
+                    foreach (var f in files)
+                    {
+                        if ((f.ToLower().Contains("pdf") || f.ToLower().Contains("doc")) &&
+                            !f.ToLower().Contains("archive") &&
+                            !f.ToLower().Contains("obsolete") &&
+                            !DocumentList.Contains(f))
+                        {
+                            DocumentList.Add(f);
+                        }
+                    }
+                }
+                return DocumentList;
+            }
+            catch (Exception ex)
+            {
+                ExecuteSecure(() => Logger.Log($"An error has occured: {ex.Message}", rt, Color.Red, true));
+                return DocumentList;
+            }
+        }
+
+        private List<string> GetProcessSheetsToList(string input, bool IsSerial)
         {
             List<string> DocumentList = new List<string>();
             string ProductNumber = input;
@@ -245,7 +367,7 @@ namespace ProcedureSearch
                 }
 
                 // get first 2 or 3 digits of product number to determine what type of part
-                // 2 digits for G- and E- series, 3 digits for all others
+                // 1 digit for G- and E- series, 3 digits for all others
                 if (ProductNumber.StartsWith("G", StringComparison.CurrentCulture) || 
                     ProductNumber.StartsWith("E", StringComparison.CurrentCulture) ||
                     ProductNumber.StartsWith("V", StringComparison.CurrentCulture))
@@ -318,7 +440,7 @@ namespace ProcedureSearch
                     }
                     case "E":
                     {
-                        dir = ($@"{VAULT_PATH}\Operations_Documents\PROCESS SHEETS\E_SERIES\PROCESS_SHEETS\");
+                        dir = ($@"{VAULT_PATH}\Operations_Documents\PROCESS SHEETS\E_SERIES\");
                         break;
                     }
                     case "V":
@@ -342,7 +464,7 @@ namespace ProcedureSearch
                 // get all pdfs matching part number
                 var files = Directory.EnumerateFiles(dir, $"*{ProductNumber}*.pdf", SearchOption.AllDirectories);
                 // if E series, force add the catch-all pdf process sheet for all E-series products to the files variable
-                if (dir.Contains("E_SERIES"))
+                if (!files.Any() && dir.Contains("E_SERIES"))
                 {
                     files = Directory.EnumerateFiles(dir, $"*DIGITAL E5 AND E6*.pdf", SearchOption.AllDirectories);
                 }
@@ -436,17 +558,27 @@ namespace ProcedureSearch
 
             if (tabControl.SelectedTab.Text == "Test Procedures")
             {
+                // ignore '[' key, mainly from barcode scanner inputs
                 if (e.KeyChar == '[')
                 {
                     e.KeyChar = (char)Keys.None;
                     e.Handled = true;
                 }
+                // call open button click when enter is pressed in listbox
+                if (TPResultsListBox.Focused && e.KeyChar == (char)Keys.Enter)
+                {
+                    TPOpenButton.PerformClick();
+                    e.Handled = true;
+                    return;
+                }
+                // call search button click when enter is pressed in combobox
                 if (TPSerialEntryComboBox.Focused && e.KeyChar == (char)Keys.Enter)
                 {
                     TPSearchButton.PerformClick();
                     e.Handled = true;
                     return;
                 }
+                // if any key besides enter is pressed and the combobox isnt focused, put that char into the combobox and focus to it
                 if (!TPSerialEntryComboBox.Focused && e.KeyChar != (char)Keys.Enter)
                 {
                     TPSerialEntryComboBox.Focus();
@@ -455,6 +587,7 @@ namespace ProcedureSearch
                     e.Handled = true;
                     return;
                 }
+                // press enter on ']' key, used for barcode scanners
                 if (e.KeyChar == ']')
                 {
                     e.KeyChar = (char)Keys.None;
@@ -465,17 +598,27 @@ namespace ProcedureSearch
 
             if (tabControl.SelectedTab.Text == "Process Sheets")
             {
+                // ignore '[' key, mainly from barcode scanner inputs
                 if (e.KeyChar == '[')
                 {
                     e.KeyChar = (char)Keys.None;
                     e.Handled = true;
                 }
+                // call open button click when enter is pressed in listbox
+                if (PSResultsListBox.Focused && e.KeyChar == (char)Keys.Enter)
+                {
+                    PSOpenButton.PerformClick();
+                    e.Handled = true;
+                    return;
+                }
+                // call search button click when enter is pressed in combobox
                 if (PSSerialEntryComboBox.Focused && e.KeyChar == (char)Keys.Enter)
                 {
                     PSSearchButton.PerformClick();
                     e.Handled = true;
                     return;
-                }
+                }                
+                // if any key besides enter is pressed and the combobox isnt focused, put that char into the combobox and focus to it
                 if (!PSSerialEntryComboBox.Focused && e.KeyChar != (char)Keys.Enter)
                 {
                     PSSerialEntryComboBox.Focus();
@@ -484,6 +627,7 @@ namespace ProcedureSearch
                     e.Handled = true;
                     return;
                 }
+                // press enter on ']' key, used for barcode scanners
                 if (e.KeyChar == ']')
                 {
                     e.KeyChar = (char)Keys.None;
@@ -497,13 +641,31 @@ namespace ProcedureSearch
         {
             List<string> procedures;
             var input = (string)e.Argument;
-            if (input.Contains("-"))
+            // if string matches below conditions, it is a serial number, set IsSerial bool argument accordingly
+            if ((input.Length == 11 || input.Length == 3) && !input.StartsWith("G", StringComparison.CurrentCultureIgnoreCase) ||
+                (input.Length == 11 || input.Length == 3) && !input.StartsWith("E", StringComparison.CurrentCultureIgnoreCase) ||
+                (input.Length == 11 || input.Length == 3) && !input.StartsWith("V", StringComparison.CurrentCultureIgnoreCase))
             {
-                procedures = GetProcedures(input, false);
+                procedures = GetProceduresToList(input, true);
             }
             else
             {
-                procedures = GetProcedures(input, true);
+                procedures = GetProceduresToList(input, false);
+            }
+            // If the quick search method does not return any procedures, use deep search and try to find procedures.
+            if (!procedures.Any())
+            {
+                // if string matches below conditions, it is a serial number, set IsSerial bool argument accordingly
+                if ((input.Length == 11 || input.Length == 3) && !input.StartsWith("G", StringComparison.CurrentCultureIgnoreCase) ||
+                    (input.Length == 11 || input.Length == 3) && !input.StartsWith("E", StringComparison.CurrentCultureIgnoreCase) ||
+                    (input.Length == 11 || input.Length == 3) && !input.StartsWith("V", StringComparison.CurrentCultureIgnoreCase))
+                {
+                    procedures = GetProceduresToListUsingSearch(input, true);
+                }
+                else
+                {
+                    procedures = GetProceduresToListUsingSearch(input, false);
+                }
             }
             var product = new Product(input, procedures);
             e.Result = product;
@@ -523,6 +685,7 @@ namespace ProcedureSearch
             if (!ProceduresList.Any())
             {
                 Logger.Log($"No procedures found for {ProductNumber}", rt, true);
+
                 return;
             }
 
@@ -534,23 +697,31 @@ namespace ProcedureSearch
 
             TPResultsListBox.SelectedItem = TPResultsListBox.Items[0];
             Logger.Log($"Found procedures for {ProductNumber}", rt, true);
+
+            // Make listbox focused so Enter key will open first result
+            TPResultsListBox.Focus();
+
+            // Check auto-open checkbox: if true, automatically open first result
+            if (cboxAutoOpenDocs.Checked)
+            {
+                TPOpenButton.PerformClick();
+            }
         }  
 
         private void PSBWorker_DoWork(object sender, DoWorkEventArgs e)
         {
             List<string> procedures;            
             var input = (string)e.Argument;
-            // if input contains "-", or starts with G or E, it is not a serial number.
-            if (input.Contains("-") || 
-                input.StartsWith("G", StringComparison.CurrentCulture) || 
-                input.StartsWith("E", StringComparison.CurrentCulture) ||
-                input.StartsWith("V", StringComparison.CurrentCulture))
+            // if string matches below conditions, it is a serial number, set IsSerial bool argument accordingly
+            if ((input.Length == 11 || input.Length == 3) && !input.StartsWith("G", StringComparison.CurrentCultureIgnoreCase) ||
+                (input.Length == 11 || input.Length == 3) && !input.StartsWith("E", StringComparison.CurrentCultureIgnoreCase) ||
+                (input.Length == 11 || input.Length == 3) && !input.StartsWith("V", StringComparison.CurrentCultureIgnoreCase))
             {
-                procedures = GetProcessSheets(input, false);
+                procedures = GetProcessSheetsToList(input, true);
             }
             else
             {
-                procedures = GetProcessSheets(input, true);
+                procedures = GetProcessSheetsToList(input, false);
             }
             var product = new Product(input, procedures);
             e.Result = product;
@@ -577,10 +748,19 @@ namespace ProcedureSearch
             {
                 var f = new FileInfo(p);
                 PSResultsListBox.Items.Add(f);
-            }
+            }                       
 
             PSResultsListBox.SelectedItem = PSResultsListBox.Items[0];                        
             Logger.Log($"Found process sheet for {ProductNumber}", rt, true);
+
+            // Make listbox focused so Enter key will open first result
+            PSResultsListBox.Focus();
+
+            // Check auto-open checkbox: if true, automatically open first result
+            if (cboxAutoOpenDocs.Checked)
+            {
+                PSOpenButton.PerformClick();
+            }
         }      
         
         private void TPSerialEntryComboBox_TextChanged(object sender, EventArgs e)
