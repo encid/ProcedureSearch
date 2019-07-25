@@ -19,11 +19,11 @@ namespace ProcedureSearch
         public string LOGFILE_PATH = ConfigurationManager.AppSettings["LOGFILE_PATH"];
         public string UNRELEASED_DOCS_PATH = ConfigurationManager.AppSettings["UNRELEASED_DOCS_PATH"];
         public string AUTO_OPEN_DOC_AFTER_SEARCH = ConfigurationManager.AppSettings["AUTO_OPEN_DOC_AFTER_SEARCH"];
-        SearchingProgressForm SearchingForm = new SearchingProgressForm();
-        BackgroundWorker TPBWorker;
-        BackgroundWorker PSBWorker;
+        private readonly SearchingProgressForm SearchingForm = new SearchingProgressForm();
+        private BackgroundWorker TPBWorker;
+        private BackgroundWorker PSBWorker;
 
-        class Product
+        private class Product
         {
             public string ProductNumber { get; set; }
             public List<string> DocumentList { get; set; }
@@ -34,20 +34,23 @@ namespace ProcedureSearch
                 DocumentList = documentList;
             }
         }
-        
+
         public Main()
         {
             InitializeComponent();
-            InitializeEventHandlers();            
+            InitializeEventHandlers();
         }
 
+        /// <summary>
+        /// Initializes event handlers and some form properties.
+        /// </summary>
         private void InitializeEventHandlers()
         {
             // initialize backgroundworkers
             TPBWorker = new BackgroundWorker
             {
                 WorkerReportsProgress = true,
-                WorkerSupportsCancellation = true            
+                WorkerSupportsCancellation = true
             };
             TPBWorker.DoWork += TPBWorker_DoWork;
             TPBWorker.RunWorkerCompleted += TPBWorker_RunWorkerCompleted;
@@ -60,7 +63,8 @@ namespace ProcedureSearch
             PSBWorker.DoWork += PSBWorker_DoWork;
             PSBWorker.RunWorkerCompleted += PSBWorker_RunWorkerCompleted;
 
-            rt.TextChanged += (sender, e) => {
+            rt.TextChanged += (sender, e) =>
+            {
                 if (rt.Visible)
                     rt.ScrollToCaret();
             };
@@ -74,26 +78,26 @@ namespace ProcedureSearch
             //set default config values if paths are null or empty (config file didn't load)
             if (string.IsNullOrEmpty(VAULT_PATH))
             {
-                VAULT_PATH = @"\\pandora\vault";
+                VAULT_PATH = @"V:\";
             }
             if (string.IsNullOrEmpty(IID_DATABASE_PATH))
             {
-                IID_DATABASE_PATH = @"\\kb-fp02\shared\Operations\Test Engineering\Test Softwares\ProcedureSearch\ProductCodesMaster.mdb";
+                IID_DATABASE_PATH = @"S:\Operations\Test Engineering\Test Softwares\ProcedureSearch\ProductCodesMaster.mdb";
             }
             if (string.IsNullOrEmpty(LOGFILE_PATH))
             {
-                LOGFILE_PATH = @"\\kb-fp02\shared\Operations\Test Engineering\Test Softwares\ProcedureSearch\log.txt";
+                LOGFILE_PATH = @"S:\Operations\Test Engineering\Test Softwares\ProcedureSearch\log.txt";
             }
             if (string.IsNullOrEmpty(UNRELEASED_DOCS_PATH))
             {
-                UNRELEASED_DOCS_PATH = @"\\kb-fp02\shared\Operations\Test Engineering\Documents ready for release";
+                UNRELEASED_DOCS_PATH = @"S:\Operations\Test Engineering\Documents ready for release";
             }
             if (string.IsNullOrEmpty(AUTO_OPEN_DOC_AFTER_SEARCH))
             {
                 AUTO_OPEN_DOC_AFTER_SEARCH = "false";
             }
             // if config file setting for auto open docs is true, auto open docs checkbox should be checked on program start
-            cboxAutoOpenDocs.Checked = (AUTO_OPEN_DOC_AFTER_SEARCH == "true");
+            cboxAutoOpenDocs.Checked = AUTO_OPEN_DOC_AFTER_SEARCH == "true";
 
             SearchingForm.Hide();
 
@@ -103,13 +107,13 @@ namespace ProcedureSearch
         }
 
         /// <summary>
-        /// Performs an action safely the appropriate thread.
+        /// Performs an action safely on the appropriate thread.
         /// </summary>
         /// <param name="a">Action to perform.</param>
         private void ExecuteSecure(Action a)
         // Usage example: ExecuteSecure(() => this.someLabel.Text = "foo");
         {
-            Invoke((MethodInvoker)delegate { a(); });
+            _ = Invoke((MethodInvoker)delegate { a(); });
         }
 
         private void OpenFile(string FileName)
@@ -121,10 +125,15 @@ namespace ProcedureSearch
             }
             catch (Exception ex)
             {
-                Logger.Log($"Error: {ex.Message}", rt, Color.Red, true);
+                Logger.Log($"Error: {ex.TargetSite} - {ex.Message}", rt, Color.Red, true);
             }
         }
 
+        /// <summary>
+        /// Searches IID database for a product number based on that IID.
+        /// </summary>
+        /// <param name="IID">IID (3 digits) to search.</param>
+        /// <returns></returns>
         private string GetProductFromIID(string IID)
         {
             var product = "";
@@ -135,7 +144,7 @@ namespace ProcedureSearch
                     conn.Open();
                     using (OleDbCommand cmd = conn.CreateCommand())
                     {
-                        cmd.CommandText = "SELECT * FROM ProductCode WHERE (ProductID = @iid)";
+                        cmd.CommandText = "SELECT * FROM [ProductCode] WHERE (ProductID = @iid)";
                         cmd.Parameters.AddWithValue("iid", IID);
                         var reader = cmd.ExecuteReader();
                         while (reader.Read() && !reader.IsDBNull(1))
@@ -143,7 +152,6 @@ namespace ProcedureSearch
                             product = reader.GetString(1);
                         }
                     }
-                    conn.Close(); 
                 }
             }
             catch (Exception ex)
@@ -151,10 +159,16 @@ namespace ProcedureSearch
                 ExecuteSecure(() => Logger.Log($"An error has occured with IID database: {ex.Message}", rt, Color.Red, true));
                 return product;
             }
-            
+
             return product;
         }
 
+        /// <summary>
+        /// Searches vault for procedure files.
+        /// </summary>
+        /// <param name="input">Input of serial number or product number.</param>
+        /// <param name="IsSerial">Flag denoting whether input is serial number.</param>
+        /// <returns>List(string) of procedure file locations. Returns empty list if nothing found.</returns> 
         private List<string> GetProceduresToList(string input, bool IsSerial)
         {
             List<string> DocumentList = new List<string>();
@@ -168,7 +182,7 @@ namespace ProcedureSearch
                     ProductNumber = GetProductFromIID(input.Substring(0, 3));
                 }
 
-                if (ProductNumber == "")
+                if (ProductNumber?.Length == 0)
                 {
                     return DocumentList;
                 }
@@ -176,9 +190,9 @@ namespace ProcedureSearch
                 // 1 digit for G- and E- and V- series, 3 digits for all others
                 string ProductPrefix;
                 string AssemblyNumber;
-                if (ProductNumber.StartsWith("G", StringComparison.CurrentCultureIgnoreCase) ||
-                    ProductNumber.StartsWith("E", StringComparison.CurrentCultureIgnoreCase) ||
-                    ProductNumber.StartsWith("V", StringComparison.CurrentCultureIgnoreCase))
+                if (ProductNumber.StartsWith("G", StringComparison.CurrentCultureIgnoreCase)
+                    || ProductNumber.StartsWith("E", StringComparison.CurrentCultureIgnoreCase)
+                    || ProductNumber.StartsWith("V", StringComparison.CurrentCultureIgnoreCase))
                 {
                     ProductPrefix = ProductNumber.Substring(0, 1);
                     AssemblyNumber = ProductNumber;
@@ -193,55 +207,77 @@ namespace ProcedureSearch
                 switch (ProductPrefix)
                 {
                     case "213":
-                    {
-                        dir = $@"{VAULT_PATH}\Released_Part_Information\234-xxxxx_Assy_Test_Proc\Standard_Products\234-{AssemblyNumber.Substring(0, 5)}";
-                        break;
-                    }
                     case "231":
-                    {
-                        dir = $@"{VAULT_PATH}\Released_Part_Information\234-xxxxx_Assy_Test_Proc\Standard_Products\234-{AssemblyNumber.Substring(0, 5)}";
-                        break;
-                    }
+                    case "233":
+                        {
+                            dir = $@"{VAULT_PATH}\Released_Part_Information\234-xxxxx_Assy_Test_Proc\Standard_Products\234-{AssemblyNumber.Substring(0, 5)}";
+                            break;
+                        }
                     case "216":
-                    {
-                        dir = $@"{VAULT_PATH}\Released_Part_Information\225-xxxxx_Proc_Mfg_Test\225-{AssemblyNumber.Substring(0, 5)}";
-                        break;
-                    }
+                        {
+                            dir = $@"{VAULT_PATH}\Released_Part_Information\225-xxxxx_Proc_Mfg_Test\225-{AssemblyNumber.Substring(0, 5)}";
+                            break;
+                        }
+                    case "G":
+                        {
+                            var FirstThree = ProductNumber.Substring(1, 3);
+                            var LastFourG = ProductNumber.Substring(ProductNumber.Length - 4);
+                            var AssemblyNumberG = $"{FirstThree}-{LastFourG}";
+                            dir = $@"{VAULT_PATH}\Released_Part_Information\234-xxxxx_Assy_Test_Proc\G-Series_Products\234-{AssemblyNumberG}";
+                            AssemblyNumber = AssemblyNumberG;
+                            break;
+                        }
                     case "V":
-                    {
-                        
-                        var LastFour = ProductNumber.Substring(ProductNumber.Length - 4);
-                        dir = $@"{VAULT_PATH}\Released_Part_Information\234-xxxxx_Assy_Test_Proc\IC-IR-IT-VR-VT_Products\234-{LastFour}-01";
-                        AssemblyNumber = LastFour;
-                        break;
-                    }        
+                        {
+                            var LastFourV = ProductNumber.Substring(ProductNumber.Length - 4);
+                            dir = $@"{VAULT_PATH}\Released_Part_Information\234-xxxxx_Assy_Test_Proc\IC-IR-IT-VR-VT_Products\234-{LastFourV}-01";
+                            AssemblyNumber = LastFourV;
+                            break;
+                        }
                     default:
-                    {
-                        return DocumentList;
-                    }
-                }
-                
-                if (!Directory.Exists(dir))
-                {
-                    return DocumentList;
-                }                
-                var files = Directory.EnumerateFiles(dir, $"*{AssemblyNumber}*", SearchOption.AllDirectories);
-                // if no matches, check for -XX files
-                if (!files.Any())
-                    files = Directory.EnumerateFiles(dir, $"*{AssemblyNumber.Substring(0, 5)}-XX*", SearchOption.AllDirectories);
-                //if no matches again, check in to-be-released test engineering folder
-                if (!files.Any())
-                {                    
-                    files = Directory.EnumerateFiles(UNRELEASED_DOCS_PATH, $"*{AssemblyNumber}*", SearchOption.AllDirectories);
+                        {
+                            return DocumentList;
+                        }
                 }
 
-                foreach (var f in files)
+                // assign the variable an empty value to get it in scope
+                IEnumerable<string> files = Directory.EnumerateFiles(@"C:\", Guid.NewGuid().ToString(), SearchOption.TopDirectoryOnly);
+
+                // if the dir exists (avoiding exception thrown from EnumerateFiles with a dir that does not exist)
+                if (Directory.Exists(dir))
                 {
-                    // check for duplicate files in list, and if no duplicates exist, add the file
-                    // Also, check for archive, and do NOT add archived files to list.
-                    if (!DocumentList.Contains(f) && !(f.ToLower().Contains("archive")))
+                    files = Directory.EnumerateFiles(dir, $"*{AssemblyNumber}*", SearchOption.AllDirectories);
+                    // if no matches, check for -XX files
+                    if (!files.Any())
                     {
-                        DocumentList.Add(f);
+                        files = Directory.EnumerateFiles(dir, $"*{AssemblyNumber.Substring(0, 5)}-XX*", SearchOption.AllDirectories);
+                    }
+
+                    foreach (var f in files)
+                    {
+                        // check for duplicate files in list, and if no duplicates exist, add the file
+                        // Also, check for archive, and do NOT add archived files to list.
+                        if (!DocumentList.Contains(f)
+                            && !f.ToLower().Contains("archive"))
+                        {
+                            DocumentList.Add(f);
+                        }
+                    }
+                }
+
+                // if the above found no files or dir doesn't exist, check the unreleased documents folder
+                if (!files.Any())
+                {
+                    files = Directory.EnumerateFiles(UNRELEASED_DOCS_PATH, $"*{AssemblyNumber}*", SearchOption.TopDirectoryOnly);
+                    foreach (var f in files)
+                    {
+                        // check for duplicate files in list, and if no duplicates exist, add the file
+                        // Also, check for archive, and do NOT add archived files to list.
+                        if (!DocumentList.Contains(f)
+                            && !f.ToLower().Contains("archive"))
+                        {
+                            DocumentList.Add(f);
+                        }
                     }
                 }
 
@@ -249,11 +285,18 @@ namespace ProcedureSearch
             }
             catch (Exception ex)
             {
-                ExecuteSecure(() => Logger.Log($"An error has occured: {ex.Message}", rt, Color.Red, true));
+                ExecuteSecure(() => Logger.Log($"An error has occured: {ex.TargetSite} - {ex.Message}", rt, Color.Red, true));
                 return DocumentList;
             }
         }
 
+        /// <summary>
+        /// Deep search that uses the product number to find directories of procedures, then searches these dirs for procedure files.
+        /// Only called if the first search returns nothing.
+        /// </summary>
+        /// <param name="input">Input of serial number or product number.</param>
+        /// <param name="IsSerial">Flag denoting whether input is serial number.</param>
+        /// <returns>List(string) of procedure file locations. Returns empty list if nothing found.</returns> 
         private List<string> GetProceduresToListUsingSearch(string input, bool IsSerial)
         {
             List<string> DocumentList = new List<string>();
@@ -268,7 +311,7 @@ namespace ProcedureSearch
                     ProductNumber = GetProductFromIID(input.Substring(0, 3));
                 }
 
-                if (ProductNumber == "")
+                if (ProductNumber?.Length == 0)
                 {
                     return DocumentList;
                 }
@@ -281,26 +324,23 @@ namespace ProcedureSearch
                 switch (ProductPrefix)
                 {
                     case "213":
-                    {
-                        StartDir = $@"{VAULT_PATH}\Released_Part_Information\213-xxxxx_Assy_Mech\";
-                        break;
-                    }
+                    case "233":
                     case "231":
-                    {
-                        StartDir = $@"{VAULT_PATH}\Released_Part_Information\234-xxxxx_Assy_Test_Proc\Standard_Products\";
-                        break;
-                    }
+                        {
+                            StartDir = $@"{VAULT_PATH}\Released_Part_Information\234-xxxxx_Assy_Test_Proc\Standard_Products\";
+                            break;
+                        }
 
                     case "216":
-                    {
-                        StartDir = $@"{VAULT_PATH}\Released_Part_Information\225-xxxxx_Proc_Mfg_Test\";
-                        break;
-                    }
+                        {
+                            StartDir = $@"{VAULT_PATH}\Released_Part_Information\225-xxxxx_Proc_Mfg_Test\";
+                            break;
+                        }
 
                     default:
-                    {
-                        return DocumentList;
-                    }
+                        {
+                            return DocumentList;
+                        }
                 }
 
                 if (!Directory.Exists(StartDir))
@@ -329,10 +369,10 @@ namespace ProcedureSearch
                     files = Directory.GetFiles(d, $"*{AssemblyNumber}*", SearchOption.AllDirectories);
                     foreach (var f in files)
                     {
-                        if ((f.ToLower().Contains("pdf") || f.ToLower().Contains("doc")) &&
-                            !f.ToLower().Contains("archive") &&
-                            !f.ToLower().Contains("obsolete") &&
-                            !DocumentList.Contains(f))
+                        if ((f.ToLower().Contains("pdf") || f.ToLower().Contains("doc"))
+                            && !f.ToLower().Contains("archive")
+                            && !f.ToLower().Contains("obsolete")
+                            && !DocumentList.Contains(f))
                         {
                             DocumentList.Add(f);
                         }
@@ -342,11 +382,17 @@ namespace ProcedureSearch
             }
             catch (Exception ex)
             {
-                ExecuteSecure(() => Logger.Log($"An error has occured: {ex.Message}", rt, Color.Red, true));
+                ExecuteSecure(() => Logger.Log($"An error has occured: {ex.TargetSite} - {ex.Message}", rt, Color.Red, true));
                 return DocumentList;
             }
         }
 
+        /// <summary>
+        /// Searches vault for process sheet files.
+        /// </summary>
+        /// <param name="input">Input of serial number or product number.</param>
+        /// <param name="IsSerial">Flag denoting whether input is serial number.</param>
+        /// <returns>List(string) of process sheet file locations. Returns empty list if nothing found.</returns> 
         private List<string> GetProcessSheetsToList(string input, bool IsSerial)
         {
             List<string> DocumentList = new List<string>();
@@ -360,17 +406,17 @@ namespace ProcedureSearch
                     // Using the IID (first 3 chars) from serial number, find corresponding product number 
                     ProductNumber = GetProductFromIID(input.Substring(0, 3));
                 }
-                
-                if (ProductNumber == "")
+
+                if (ProductNumber?.Length == 0)
                 {
                     return DocumentList;
                 }
 
                 // get first 2 or 3 digits of product number to determine what type of part
                 // 1 digit for G- and E- series, 3 digits for all others
-                if (ProductNumber.StartsWith("G", StringComparison.CurrentCulture) || 
-                    ProductNumber.StartsWith("E", StringComparison.CurrentCulture) ||
-                    ProductNumber.StartsWith("V", StringComparison.CurrentCulture))
+                if (ProductNumber.StartsWith("G", StringComparison.CurrentCulture)
+                    || ProductNumber.StartsWith("E", StringComparison.CurrentCulture)
+                    || ProductNumber.StartsWith("V", StringComparison.CurrentCulture))
                 {
                     ProductPrefix = ProductNumber.Substring(0, 1);
                 }
@@ -378,81 +424,81 @@ namespace ProcedureSearch
                 {
                     ProductPrefix = ProductNumber.Substring(0, 3);
                 }
-                
+
                 // remove first 4 characters of product number to get assembly number
                 //var AssemblyNumber = ProductNumber.Remove(0, 4);
                 switch (ProductPrefix)
                 {
                     case "213":
-                    {
-                        dir = ($@"{VAULT_PATH}\Operations_Documents\PROCESS SHEETS\213-xxxxx_Assy_Mech\{ProductNumber.Substring(0, 9)}");
-                        break;
-                    }
+                        {
+                            dir = ($@"{VAULT_PATH}\Operations_Documents\PROCESS SHEETS\213-xxxxx_Assy_Mech\{ProductNumber.Substring(0, 9)}");
+                            break;
+                        }
                     case "216":
-                    {
-                        dir = ($@"{VAULT_PATH}\Operations_Documents\PROCESS SHEETS\216-xxxxx_PCB_Assy_Part_List\{ProductNumber.Substring(0, 9)}");
-                        break;
-                    }
+                        {
+                            dir = ($@"{VAULT_PATH}\Operations_Documents\PROCESS SHEETS\216-xxxxx_PCB_Assy_Part_List\{ProductNumber.Substring(0, 9)}");
+                            break;
+                        }
                     case "221":
-                    {
-                        dir = ($@"{VAULT_PATH}\Operations_Documents\PROCESS SHEETS\221-xxxxx_Internal_Harness\{ProductNumber.Substring(0, 9)}");
-                        break;
-                    }
+                        {
+                            dir = ($@"{VAULT_PATH}\Operations_Documents\PROCESS SHEETS\221-xxxxx_Internal_Harness\{ProductNumber.Substring(0, 9)}");
+                            break;
+                        }
                     case "222":
-                    {
-                        dir = ($@"{VAULT_PATH}\Operations_Documents\PROCESS SHEETS\222-xxxxx_Extnl_Harness_Cable\{ProductNumber.Substring(0, 9)}");
-                        break;
-                    }
+                        {
+                            dir = ($@"{VAULT_PATH}\Operations_Documents\PROCESS SHEETS\222-xxxxx_Extnl_Harness_Cable\{ProductNumber.Substring(0, 9)}");
+                            break;
+                        }
                     case "230":
-                    {
-                        dir = ($@"{VAULT_PATH}\Operations_Documents\PROCESS SHEETS\230-xxxxx_Modified_Altered_Items\{ProductNumber.Substring(0, 9)}");
-                        break;
-                    }
+                        {
+                            dir = ($@"{VAULT_PATH}\Operations_Documents\PROCESS SHEETS\230-xxxxx_Modified_Altered_Items\{ProductNumber.Substring(0, 9)}");
+                            break;
+                        }
                     case "231":
-                    {
-                        dir = ($@"{VAULT_PATH}\Operations_Documents\PROCESS SHEETS\231-xxxxx_Shipping_Final_Assy\{ProductNumber.Substring(0, 9)}");
-                        break;
-                    }
+                        {
+                            dir = ($@"{VAULT_PATH}\Operations_Documents\PROCESS SHEETS\231-xxxxx_Shipping_Final_Assy\{ProductNumber.Substring(0, 9)}");
+                            break;
+                        }
                     case "233":
-                    {
-                        dir = ($@"{VAULT_PATH}\Operations_Documents\PROCESS SHEETS\233-xxxxx_Final_Comp_Assy\{ProductNumber.Substring(0, 9)}");
-                        break;
-                    }
+                        {
+                            dir = ($@"{VAULT_PATH}\Operations_Documents\PROCESS SHEETS\233-xxxxx_Final_Comp_Assy\{ProductNumber.Substring(0, 9)}");
+                            break;
+                        }
                     case "516":
-                    {
-                        dir = ($@"{VAULT_PATH}\Operations_Documents\PROCESS SHEETS\516-xxxxx_Prototype_PCB\{ProductNumber.Substring(0, 9)}");
-                        break;
-                    }
+                        {
+                            dir = ($@"{VAULT_PATH}\Operations_Documents\PROCESS SHEETS\516-xxxxx_Prototype_PCB\{ProductNumber.Substring(0, 9)}");
+                            break;
+                        }
                     case "531":
-                    {
-                        dir = ($@"{VAULT_PATH}\Operations_Documents\PROCESS SHEETS\531-xxxxx_Shipping_Final_Assy\{ProductNumber.Substring(0, 9)}");
-                        break;
-                    }
+                        {
+                            dir = ($@"{VAULT_PATH}\Operations_Documents\PROCESS SHEETS\531-xxxxx_Shipping_Final_Assy\{ProductNumber.Substring(0, 9)}");
+                            break;
+                        }
                     case "533":
-                    {
-                        dir = ($@"{VAULT_PATH}\Operations_Documents\PROCESS SHEETS\533-Prototype_Final_Assy\{ProductNumber.Substring(0, 9)}");
-                        break;
-                    }
+                        {
+                            dir = ($@"{VAULT_PATH}\Operations_Documents\PROCESS SHEETS\533-Prototype_Final_Assy\{ProductNumber.Substring(0, 9)}");
+                            break;
+                        }
                     case "G":
-                    {
-                        dir = ($@"{VAULT_PATH}\Operations_Documents\PROCESS SHEETS\G_SERIES\");
-                        break;
-                    }
+                        {
+                            dir = ($@"{VAULT_PATH}\Operations_Documents\PROCESS SHEETS\G_SERIES\");
+                            break;
+                        }
                     case "E":
-                    {
-                        dir = ($@"{VAULT_PATH}\Operations_Documents\PROCESS SHEETS\E_SERIES\");
-                        break;
-                    }
+                        {
+                            dir = ($@"{VAULT_PATH}\Operations_Documents\PROCESS SHEETS\E_SERIES\");
+                            break;
+                        }
                     case "V":
-                    {
-                        dir = ($@"{VAULT_PATH}\Operations_Documents\PROCESS SHEETS\V_SERIES\PROCESS_SHEETS\");
-                        break;
-                    }
+                        {
+                            dir = ($@"{VAULT_PATH}\Operations_Documents\PROCESS SHEETS\V_SERIES\PROCESS_SHEETS\");
+                            break;
+                        }
 
                     default:
-                    {
-                        return DocumentList;
-                    }
+                        {
+                            return DocumentList;
+                        }
                 }
 
                 // make sure dir exists
@@ -460,7 +506,7 @@ namespace ProcedureSearch
                 {
                     return DocumentList;
                 }
-                
+
                 // get all pdfs matching part number
                 var files = Directory.EnumerateFiles(dir, $"*{ProductNumber}*.pdf", SearchOption.AllDirectories);
                 // if E series, force add the catch-all pdf process sheet for all E-series products to the files variable
@@ -469,12 +515,17 @@ namespace ProcedureSearch
                     files = Directory.EnumerateFiles(dir, $"*DIGITAL E5 AND E6*.pdf", SearchOption.AllDirectories);
                 }
                 if (!files.Any())
+                {
                     files = Directory.EnumerateFiles(dir, $"*{ProductNumber.Substring(0, 9)}-XX*.pdf", SearchOption.AllDirectories);
+                }
                 if (!files.Any())
+                {
                     files = Directory.EnumerateFiles(dir, $"*{ProductNumber.Substring(0, 9)}-ALL*.pdf", SearchOption.AllDirectories);
-                
+                }
                 if (!files.Any())
+                {
                     return DocumentList;
+                }
 
                 var fileinfo = new List<FileInfo>();
                 foreach (var f in files)
@@ -486,9 +537,9 @@ namespace ProcedureSearch
                 }
 
                 // only attempt to add files to DocumentList if the fileinfo list is populated, to avoid null exception
-                if (fileinfo.Any())
+                if (fileinfo.Count > 0)
                 {
-                    DocumentList.Add(fileinfo.OrderByDescending(f => f.LastWriteTime).FirstOrDefault().ToString());
+                    DocumentList.Add(fileinfo.OrderByDescending(f => f.LastWriteTime).FirstOrDefault()?.ToString());
                 }
 
                 return DocumentList;
@@ -497,7 +548,7 @@ namespace ProcedureSearch
             {
                 ExecuteSecure(() => Logger.Log($"An error has occured: {ex.TargetSite} - {ex.Message}", rt, Color.Red, true));
                 return DocumentList;
-            }            
+            }
         }
 
         private void TPOpenButton_Click(object sender, EventArgs e)
@@ -513,12 +564,6 @@ namespace ProcedureSearch
             if (f.ToString().Contains("ready for release"))
             {
                 MessageBox.Show("Note:  This procedure has not yet been released to the vault.", "Procedure Search", MessageBoxButtons.OK);
-            }
-
-            if (TPArchivedLabel.Visible)
-            {
-                if (MessageBox.Show("This procedure is archived, and may not be the newest revision.\n\nAre you sure you want to open this procedure?",
-                                "Procedure Search", MessageBoxButtons.YesNo) == DialogResult.No) return;
             }
 
             OpenFile(TPResultsListBox.SelectedItem.ToString());
@@ -593,7 +638,7 @@ namespace ProcedureSearch
                     e.KeyChar = (char)Keys.None;
                     TPSearchButton.PerformClick();
                     return;
-                }                
+                }
             }
 
             if (tabControl.SelectedTab.Text == "Process Sheets")
@@ -617,7 +662,7 @@ namespace ProcedureSearch
                     PSSearchButton.PerformClick();
                     e.Handled = true;
                     return;
-                }                
+                }
                 // if any key besides enter is pressed and the combobox isnt focused, put that char into the combobox and focus to it
                 if (!PSSerialEntryComboBox.Focused && e.KeyChar != (char)Keys.Enter)
                 {
@@ -633,8 +678,8 @@ namespace ProcedureSearch
                     e.KeyChar = (char)Keys.None;
                     PSSearchButton.PerformClick();
                     return;
-                }                
-            }            
+                }
+            }
         }
 
         private void TPBWorker_DoWork(object sender, DoWorkEventArgs e)
@@ -642,9 +687,9 @@ namespace ProcedureSearch
             List<string> procedures;
             var input = (string)e.Argument;
             // if string matches below conditions, it is a serial number, set IsSerial bool argument accordingly
-            if ((input.Length == 11 || input.Length == 3) && !input.StartsWith("G", StringComparison.CurrentCultureIgnoreCase) ||
-                (input.Length == 11 || input.Length == 3) && !input.StartsWith("E", StringComparison.CurrentCultureIgnoreCase) ||
-                (input.Length == 11 || input.Length == 3) && !input.StartsWith("V", StringComparison.CurrentCultureIgnoreCase))
+            if (((input.Length == 11 || input.Length == 3) && !input.StartsWith("G", StringComparison.CurrentCultureIgnoreCase))
+                || ((input.Length == 11 || input.Length == 3) && !input.StartsWith("E", StringComparison.CurrentCultureIgnoreCase))
+                || ((input.Length == 11 || input.Length == 3) && !input.StartsWith("V", StringComparison.CurrentCultureIgnoreCase)))
             {
                 procedures = GetProceduresToList(input, true);
             }
@@ -653,12 +698,12 @@ namespace ProcedureSearch
                 procedures = GetProceduresToList(input, false);
             }
             // If the quick search method does not return any procedures, use deep search and try to find procedures.
-            if (!procedures.Any())
+            if (procedures.Count == 0)
             {
                 // if string matches below conditions, it is a serial number, set IsSerial bool argument accordingly
-                if ((input.Length == 11 || input.Length == 3) && !input.StartsWith("G", StringComparison.CurrentCultureIgnoreCase) ||
-                    (input.Length == 11 || input.Length == 3) && !input.StartsWith("E", StringComparison.CurrentCultureIgnoreCase) ||
-                    (input.Length == 11 || input.Length == 3) && !input.StartsWith("V", StringComparison.CurrentCultureIgnoreCase))
+                if (((input.Length == 11 || input.Length == 3) && !input.StartsWith("G", StringComparison.CurrentCultureIgnoreCase))
+                    || ((input.Length == 11 || input.Length == 3) && !input.StartsWith("E", StringComparison.CurrentCultureIgnoreCase))
+                    || ((input.Length == 11 || input.Length == 3) && !input.StartsWith("V", StringComparison.CurrentCultureIgnoreCase)))
                 {
                     procedures = GetProceduresToListUsingSearch(input, true);
                 }
@@ -674,7 +719,7 @@ namespace ProcedureSearch
         private void TPBWorker_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
         {
             tabControl.Enabled = true;
-            
+
             SearchingForm.Hide();
             var product = (Product)e.Result;
             string ProductNumber = product.ProductNumber;
@@ -682,7 +727,7 @@ namespace ProcedureSearch
             TPFilenameTextbox.Text = ProductNumber;
             TPSerialEntryComboBox.Focus();
 
-            if (!ProceduresList.Any())
+            if (ProceduresList.Count == 0)
             {
                 Logger.Log($"No procedures found for {ProductNumber}", rt, true);
 
@@ -706,16 +751,16 @@ namespace ProcedureSearch
             {
                 TPOpenButton.PerformClick();
             }
-        }  
+        }
 
         private void PSBWorker_DoWork(object sender, DoWorkEventArgs e)
         {
-            List<string> procedures;            
+            List<string> procedures;
             var input = (string)e.Argument;
             // if string matches below conditions, it is a serial number, set IsSerial bool argument accordingly
-            if ((input.Length == 11 || input.Length == 3) && !input.StartsWith("G", StringComparison.CurrentCultureIgnoreCase) ||
-                (input.Length == 11 || input.Length == 3) && !input.StartsWith("E", StringComparison.CurrentCultureIgnoreCase) ||
-                (input.Length == 11 || input.Length == 3) && !input.StartsWith("V", StringComparison.CurrentCultureIgnoreCase))
+            if (((input.Length == 11 || input.Length == 3) && !input.StartsWith("G", StringComparison.CurrentCultureIgnoreCase))
+                || ((input.Length == 11 || input.Length == 3) && !input.StartsWith("E", StringComparison.CurrentCultureIgnoreCase))
+                || ((input.Length == 11 || input.Length == 3) && !input.StartsWith("V", StringComparison.CurrentCultureIgnoreCase)))
             {
                 procedures = GetProcessSheetsToList(input, true);
             }
@@ -738,7 +783,7 @@ namespace ProcedureSearch
             PSFilenameTextbox.Text = ProductNumber;
             PSSerialEntryComboBox.Focus();
 
-            if (!ProceduresList.Any())
+            if (ProceduresList.Count == 0)
             {
                 Logger.Log($"No process sheets found for {ProductNumber}", rt, true);
                 return;
@@ -748,9 +793,9 @@ namespace ProcedureSearch
             {
                 var f = new FileInfo(p);
                 PSResultsListBox.Items.Add(f);
-            }                       
+            }
 
-            PSResultsListBox.SelectedItem = PSResultsListBox.Items[0];                        
+            PSResultsListBox.SelectedItem = PSResultsListBox.Items[0];
             Logger.Log($"Found process sheet for {ProductNumber}", rt, true);
 
             // Make listbox focused so Enter key will open first result
@@ -761,8 +806,8 @@ namespace ProcedureSearch
             {
                 PSOpenButton.PerformClick();
             }
-        }      
-        
+        }
+
         private void TPSerialEntryComboBox_TextChanged(object sender, EventArgs e)
         {
             var currPos = TPSerialEntryComboBox.SelectionStart;
@@ -802,7 +847,7 @@ namespace ProcedureSearch
             PSSerialEntryComboBox.SelectAll();
             tabControl.Enabled = false;
             SearchingForm.Show();
-            PSBWorker.RunWorkerAsync(Serial);            
+            PSBWorker.RunWorkerAsync(Serial);
         }
 
         private void PSOpenButton_Click(object sender, EventArgs e)
@@ -813,19 +858,18 @@ namespace ProcedureSearch
                 return;
             }
 
-            var f = new FileInfo(PSResultsListBox.SelectedItem.ToString().ToLower());
             OpenFile(PSResultsListBox.SelectedItem.ToString());
         }
 
         private void TPResultsListBox_SelectedValueChanged(object sender, EventArgs e)
-        {   
+        {
             var f = new FileInfo(TPResultsListBox.SelectedItem.ToString());
             TPDateTextbox.Text = f.LastWriteTime.ToShortDateString();
 
             // bugfix, some files don't contain spaces
             if (f.Name.Contains(" "))
             {
-                TPFilenameTextbox.Text = f.Name.Substring(0, f.Name.IndexOf(" ", StringComparison.CurrentCulture)); 
+                TPFilenameTextbox.Text = f.Name.Substring(0, f.Name.IndexOf(" ", StringComparison.CurrentCulture));
             }
         }
 
@@ -837,7 +881,7 @@ namespace ProcedureSearch
             // bugfix, some files don't contain spaces
             if (f.Name.Contains(" "))
             {
-                PSFilenameTextbox.Text = f.Name.Substring(0, f.Name.IndexOf(" ", StringComparison.CurrentCulture)); 
+                PSFilenameTextbox.Text = f.Name.Substring(0, f.Name.IndexOf(" ", StringComparison.CurrentCulture));
             }
         }
 

@@ -32,7 +32,6 @@ namespace ProcedureSearch
             this.rt = new System.Windows.Forms.RichTextBox();
             this.tabPage3 = new System.Windows.Forms.TabPage();
             this.label4 = new System.Windows.Forms.Label();
-            this.TPArchivedLabel = new System.Windows.Forms.Label();
             this.TPListGroupBox = new System.Windows.Forms.GroupBox();
             this.TPResultsListBox = new System.Windows.Forms.ListBox();
             this.TPSearchGroupBox = new System.Windows.Forms.GroupBox();
@@ -86,7 +85,6 @@ namespace ProcedureSearch
             // tabPage3
             // 
             this.tabPage3.Controls.Add(this.label4);
-            this.tabPage3.Controls.Add(this.TPArchivedLabel);
             this.tabPage3.Controls.Add(this.TPListGroupBox);
             this.tabPage3.Controls.Add(this.TPSearchGroupBox);
             this.tabPage3.Controls.Add(this.TPOpenButton);
@@ -111,17 +109,6 @@ namespace ProcedureSearch
             this.label4.Size = new System.Drawing.Size(224, 22);
             this.label4.TabIndex = 7;
             this.label4.Text = "Test Procedure Search";
-            // 
-            // TPArchivedLabel
-            // 
-            this.TPArchivedLabel.AutoSize = true;
-            this.TPArchivedLabel.Font = new System.Drawing.Font("Tahoma", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.TPArchivedLabel.Location = new System.Drawing.Point(370, 266);
-            this.TPArchivedLabel.Name = "TPArchivedLabel";
-            this.TPArchivedLabel.Size = new System.Drawing.Size(61, 16);
-            this.TPArchivedLabel.TabIndex = 6;
-            this.TPArchivedLabel.Text = "Archived!";
-            this.TPArchivedLabel.Visible = false;
             // 
             // TPListGroupBox
             // 
@@ -390,9 +377,9 @@ namespace ProcedureSearch
             this.label7.Font = new System.Drawing.Font("Tahoma", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.label7.Location = new System.Drawing.Point(212, 28);
             this.label7.Name = "label7";
-            this.label7.Size = new System.Drawing.Size(137, 14);
+            this.label7.Size = new System.Drawing.Size(126, 14);
             this.label7.TabIndex = 10;
-            this.label7.Text = "Version 1.06  - 6/20/19";
+            this.label7.Text = "Version 1.07 - 7/8/19";
             // 
             // pictureBox2
             // 
@@ -480,7 +467,6 @@ namespace ProcedureSearch
         private ComboBox TPSerialEntryComboBox;
         private TabControl tabControl;
         private TabPage tabPage1;
-        private Label TPArchivedLabel;
         private GroupBox groupBox1;
         private ListBox PSResultsListBox;
         private GroupBox groupBox2;

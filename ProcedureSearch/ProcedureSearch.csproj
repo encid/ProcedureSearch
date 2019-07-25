@@ -24,16 +24,17 @@
     <UpdateInterval>7</UpdateInterval>
     <UpdateIntervalUnits>Days</UpdateIntervalUnits>
     <UpdatePeriodically>false</UpdatePeriodically>
-    <UpdateRequired>false</UpdateRequired>
+    <UpdateRequired>true</UpdateRequired>
     <MapFileExtensions>true</MapFileExtensions>
     <InstallUrl>\\kb-fp02\shared\Operations\Test Engineering\Test Softwares\ProcedureSearch\deploy\</InstallUrl>
     <ProductName>Procedure Search</ProductName>
     <PublisherName>FAST</PublisherName>
     <SuiteName>Procedure Search</SuiteName>
+    <MinimumRequiredVersion>1.0.7.0</MinimumRequiredVersion>
     <OpenBrowserOnPublish>false</OpenBrowserOnPublish>
     <ApplicationRevision>0</ApplicationRevision>
-    <ApplicationVersion>1.0.6.0</ApplicationVersion>
-    <UseApplicationTrust>false</UseApplicationTrust>
+    <ApplicationVersion>1.0.7.0</ApplicationVersion>
+    <UseApplicationTrust>true</UseApplicationTrust>
     <CreateDesktopShortcut>true</CreateDesktopShortcut>
     <PublishWizardCompleted>true</PublishWizardCompleted>
     <BootstrapperEnabled>true</BootstrapperEnabled>
@@ -75,6 +76,8 @@
     <ErrorReport>prompt</ErrorReport>
     <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <DocumentationFile>
+    </DocumentationFile>
   </PropertyGroup>
   <PropertyGroup>
     <ApplicationIcon>Resources\google-web-search-icon-14-64.ico</ApplicationIcon>
@@ -116,6 +119,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Extensions.cs" />
+    <Compile Include="GlobalSuppressions.cs" />
     <Compile Include="SearchingProgressForm.cs">
       <SubType>Form</SubType>
     </Compile>
