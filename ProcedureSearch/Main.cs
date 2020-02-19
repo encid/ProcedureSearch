@@ -16,6 +16,7 @@ namespace ProcedureSearch
     {
         public string VAULT_PATH = ConfigurationManager.AppSettings["VAULT_PATH"];
         public string IID_DATABASE_PATH = ConfigurationManager.AppSettings["IID_DATABASE_PATH"];
+        public string IID_DATABASE_PROVIDER = ConfigurationManager.AppSettings["IID_DATABASE_PROVIDER"];
         public string LOGFILE_PATH = ConfigurationManager.AppSettings["LOGFILE_PATH"];
         public string UNRELEASED_DOCS_PATH = ConfigurationManager.AppSettings["UNRELEASED_DOCS_PATH"];
         public string AUTO_OPEN_DOC_AFTER_SEARCH = ConfigurationManager.AppSettings["AUTO_OPEN_DOC_AFTER_SEARCH"];
@@ -78,11 +79,15 @@ namespace ProcedureSearch
             //set default config values if paths are null or empty (config file didn't load)
             if (string.IsNullOrEmpty(VAULT_PATH))
             {
-                VAULT_PATH = @"V:\";
+                VAULT_PATH = @"V:\"; 
             }
             if (string.IsNullOrEmpty(IID_DATABASE_PATH))
             {
                 IID_DATABASE_PATH = @"S:\Operations\Test Engineering\Test Softwares\ProcedureSearch\ProductCodesMaster.mdb";
+            }
+            if (string.IsNullOrEmpty(IID_DATABASE_PATH))
+            {
+                IID_DATABASE_PROVIDER = @"Microsoft.Jet.OLEDB.4.0";
             }
             if (string.IsNullOrEmpty(LOGFILE_PATH))
             {
@@ -132,25 +137,43 @@ namespace ProcedureSearch
         /// <summary>
         /// Searches IID database for a product number based on that IID.
         /// </summary>
-        /// <param name="IID">IID (3 digits) to search.</param>
+        /// <param name="query">IID (3 digits) to search.</param>
+        /// <param name="QueryType">Query for part number or IID, 0 = part number, 1 = IID</param>
         /// <returns></returns>
-        private string GetProductFromIID(string IID)
+        private string QueryIidDatabase(string query, int QueryType)
         {
             var product = "";
+            OleDbDataReader reader;
             try
             {
-                using (OleDbConnection conn = new OleDbConnection($"Provider=Microsoft.Jet.OLEDB.4.0;Data Source={IID_DATABASE_PATH}"))
+                using (OleDbConnection conn = new OleDbConnection($"Provider={IID_DATABASE_PROVIDER};Data Source={IID_DATABASE_PATH}"))
                 {
                     conn.Open();
                     using (OleDbCommand cmd = conn.CreateCommand())
                     {
-                        cmd.CommandText = "SELECT * FROM [ProductCode] WHERE (ProductID = @iid)";
-                        cmd.Parameters.AddWithValue("iid", IID);
-                        var reader = cmd.ExecuteReader();
-                        while (reader.Read() && !reader.IsDBNull(1))
+                        switch (QueryType)
                         {
-                            product = reader.GetString(1);
-                        }
+                            case 0:
+                                cmd.CommandText = "SELECT * FROM [ProductCode] WHERE (ProductID = @iid)";
+                                cmd.Parameters.AddWithValue("@iid", query);
+                                reader = cmd.ExecuteReader();
+                                while (reader.Read() && !reader.IsDBNull(1))
+                                {
+                                    product = reader.GetString(1);
+                                }
+                                break;
+                            case 1:
+                                cmd.CommandText = "SELECT * FROM [ProductCode] WHERE (Product = @product)";
+                                cmd.Parameters.AddWithValue("@product", query);
+                                reader = cmd.ExecuteReader();
+                                while (reader.Read() && !reader.IsDBNull(0))
+                                {
+                                    product = reader.GetString(0);
+                                }
+                                break;
+                            default:
+                                break;
+                        }         
                     }
                 }
             }
@@ -179,7 +202,7 @@ namespace ProcedureSearch
                 if (IsSerial)
                 {
                     // Using the IID (first 3 chars) from serial number, find corresponding product number
-                    ProductNumber = GetProductFromIID(input.Substring(0, 3));
+                    ProductNumber = QueryIidDatabase(input.Substring(0, 3), 0);
                 }
 
                 if (ProductNumber?.Length == 0)
@@ -241,7 +264,7 @@ namespace ProcedureSearch
                 }
 
                 // assign the variable an empty value to get it in scope
-                IEnumerable<string> files = Directory.EnumerateFiles(@"C:\", Guid.NewGuid().ToString(), SearchOption.TopDirectoryOnly);
+                IEnumerable<string> files = Enumerable.Empty<string>();
 
                 // if the dir exists (avoiding exception thrown from EnumerateFiles with a dir that does not exist)
                 if (Directory.Exists(dir))
@@ -266,19 +289,51 @@ namespace ProcedureSearch
                 }
 
                 // if the above found no files or dir doesn't exist, check the unreleased documents folder
-                if (!files.Any())
+                //if (!files.Any())
+                //{
+                //    files = Directory.EnumerateFiles(UNRELEASED_DOCS_PATH, $"*{AssemblyNumber}*", SearchOption.TopDirectoryOnly);
+                //    foreach (var f in files)
+                //    {
+                //        // check for duplicate files in list, and if no duplicates exist, add the file
+                //        // Also, check for archive, and do NOT add archived files to list.
+                //        if (!DocumentList.Contains(f)
+                //            && !f.ToLower().Contains("archive"))
+                //        {
+                //            DocumentList.Add(f);
+                //        }
+                //    }
+                //}
+
+                // if still nothing found, and assembly is a G, check 225
+                if (!files.Any() && ProductNumber.ToUpper().StartsWith("G"))
                 {
-                    files = Directory.EnumerateFiles(UNRELEASED_DOCS_PATH, $"*{AssemblyNumber}*", SearchOption.TopDirectoryOnly);
-                    foreach (var f in files)
+                    var FirstThree = ProductNumber.Substring(1, 3);
+                    var LastFourG = ProductNumber.Substring(ProductNumber.Length - 4);
+                    var AssemblyNumberG = $"{FirstThree}-{LastFourG}";
+                    dir = $@"{VAULT_PATH}\Released_Part_Information\225-xxxxx_Proc_Mfg_Test\225-{AssemblyNumberG}";
+                    // make sure dir exists to avoid exception
+                    if (Directory.Exists(dir))
                     {
-                        // check for duplicate files in list, and if no duplicates exist, add the file
-                        // Also, check for archive, and do NOT add archived files to list.
-                        if (!DocumentList.Contains(f)
-                            && !f.ToLower().Contains("archive"))
+                        files = Directory.EnumerateFiles(dir, $"*{AssemblyNumber}*", SearchOption.TopDirectoryOnly);
+                        foreach (var f in files)
                         {
-                            DocumentList.Add(f);
+                            // check for duplicate files in list, and if no duplicates exist, add the file
+                            // Also, check for archive, and do NOT add archived files to list.
+                            if (!DocumentList.Contains(f)
+                                && !f.ToLower().Contains("archive"))
+                            {
+                                DocumentList.Add(f);
+                            }
                         }
-                    }
+                    }                    
+                }
+
+                // if both doc and pdf are found, remove the doc from list and only return the pdf.         
+                // reasoning behind this, some computers on mfg floor have libreoffice, which opens a messagebox behind a window and
+                // gives the impression that the file didn't open.
+                if (DocumentList.Any(x => x.Contains(".pdf")) && DocumentList.Any(x => x.Contains(".doc")))
+                {
+                    DocumentList.RemoveAll(x => x.Contains(".doc"));
                 }
 
                 return DocumentList;
@@ -308,7 +363,7 @@ namespace ProcedureSearch
                 if (IsSerial)
                 {
                     // Using the IID (first 3 chars) from serial number, find corresponding product number
-                    ProductNumber = GetProductFromIID(input.Substring(0, 3));
+                    ProductNumber = QueryIidDatabase(input.Substring(0, 3), 0);
                 }
 
                 if (ProductNumber?.Length == 0)
@@ -378,6 +433,15 @@ namespace ProcedureSearch
                         }
                     }
                 }
+
+                // if both doc and pdf are found, remove the doc from list and only return the pdf.         
+                // reasoning behind this, some computers on mfg floor have libreoffice, which opens a messagebox behind a window and
+                // gives the impression that the file didn't open.
+                if (DocumentList.Any(x => x.Contains(".pdf")) && DocumentList.Any(x => x.Contains(".doc")))
+                {
+                    DocumentList.RemoveAll(x => x.Contains(".doc"));
+                }
+
                 return DocumentList;
             }
             catch (Exception ex)
@@ -404,7 +468,7 @@ namespace ProcedureSearch
                 if (IsSerial)
                 {
                     // Using the IID (first 3 chars) from serial number, find corresponding product number 
-                    ProductNumber = GetProductFromIID(input.Substring(0, 3));
+                    ProductNumber = QueryIidDatabase(input.Substring(0, 3), 0);
                 }
 
                 if (ProductNumber?.Length == 0)
@@ -527,14 +591,7 @@ namespace ProcedureSearch
                     return DocumentList;
                 }
 
-                var fileinfo = new List<FileInfo>();
-                foreach (var f in files)
-                {
-                    if (!f.ToLower().Contains("archive"))
-                    {
-                        fileinfo.Add(new FileInfo(f));
-                    }
-                }
+                var fileinfo = files.Where(f => !f.ToLower().Contains("archive")).Select(f => new FileInfo(f)).ToList();
 
                 // only attempt to add files to DocumentList if the fileinfo list is populated, to avoid null exception
                 if (fileinfo.Count > 0)
@@ -552,10 +609,18 @@ namespace ProcedureSearch
         }
 
         private void TPOpenButton_Click(object sender, EventArgs e)
-        {
+        {           
             if (TPResultsListBox.Items.Count == 0)
             {
                 Logger.Log("No procedure selected, enter a serial number or product and search.", rt, Color.Red, true);
+                return;
+            }
+
+            // hidden feature, hold control while opening procedure file, this will open the folder the file is in.
+            if (Control.ModifierKeys == Keys.Control)
+            {
+                string folder = Path.GetDirectoryName(TPResultsListBox.SelectedItem.ToString());
+                OpenFile(folder);
                 return;
             }
 
@@ -594,7 +659,7 @@ namespace ProcedureSearch
             TPSerialEntryComboBox.SelectAll();
             tabControl.Enabled = false;
             SearchingForm.Show();
-            TPBWorker.RunWorkerAsync(Serial);
+            TPBWorker.RunWorkerAsync(Serial);         
         }
 
         private void Main_KeyPress(object sender, KeyPressEventArgs e)
@@ -604,27 +669,27 @@ namespace ProcedureSearch
             if (tabControl.SelectedTab.Text == "Test Procedures")
             {
                 // ignore '[' key, mainly from barcode scanner inputs
-                if (e.KeyChar == '[')
+                if (e.KeyChar.Equals('['))
                 {
                     e.KeyChar = (char)Keys.None;
                     e.Handled = true;
                 }
                 // call open button click when enter is pressed in listbox
-                if (TPResultsListBox.Focused && e.KeyChar == (char)Keys.Enter)
+                if (TPResultsListBox.Focused && e.KeyChar.Equals((char)Keys.Enter))
                 {
                     TPOpenButton.PerformClick();
                     e.Handled = true;
                     return;
                 }
                 // call search button click when enter is pressed in combobox
-                if (TPSerialEntryComboBox.Focused && e.KeyChar == (char)Keys.Enter)
+                if (TPSerialEntryComboBox.Focused && e.KeyChar.Equals((char)Keys.Enter))
                 {
                     TPSearchButton.PerformClick();
                     e.Handled = true;
                     return;
                 }
                 // if any key besides enter is pressed and the combobox isnt focused, put that char into the combobox and focus to it
-                if (!TPSerialEntryComboBox.Focused && e.KeyChar != (char)Keys.Enter)
+                if (!TPSerialEntryComboBox.Focused && !e.KeyChar.Equals((char)Keys.Enter))
                 {
                     TPSerialEntryComboBox.Focus();
                     TPSerialEntryComboBox.Text = e.KeyChar.ToString();
@@ -633,7 +698,7 @@ namespace ProcedureSearch
                     return;
                 }
                 // press enter on ']' key, used for barcode scanners
-                if (e.KeyChar == ']')
+                if (e.KeyChar.Equals(']'))
                 {
                     e.KeyChar = (char)Keys.None;
                     TPSearchButton.PerformClick();
@@ -641,30 +706,30 @@ namespace ProcedureSearch
                 }
             }
 
-            if (tabControl.SelectedTab.Text == "Process Sheets")
+            if (tabControl.SelectedTab.Text.Equals("Process Sheets"))
             {
                 // ignore '[' key, mainly from barcode scanner inputs
-                if (e.KeyChar == '[')
+                if (e.KeyChar.Equals('['))
                 {
                     e.KeyChar = (char)Keys.None;
                     e.Handled = true;
                 }
                 // call open button click when enter is pressed in listbox
-                if (PSResultsListBox.Focused && e.KeyChar == (char)Keys.Enter)
+                if (PSResultsListBox.Focused && e.KeyChar.Equals((char)Keys.Enter))
                 {
                     PSOpenButton.PerformClick();
                     e.Handled = true;
                     return;
                 }
                 // call search button click when enter is pressed in combobox
-                if (PSSerialEntryComboBox.Focused && e.KeyChar == (char)Keys.Enter)
+                if (PSSerialEntryComboBox.Focused && e.KeyChar.Equals((char)Keys.Enter))
                 {
                     PSSearchButton.PerformClick();
                     e.Handled = true;
                     return;
                 }
                 // if any key besides enter is pressed and the combobox isnt focused, put that char into the combobox and focus to it
-                if (!PSSerialEntryComboBox.Focused && e.KeyChar != (char)Keys.Enter)
+                if (!PSSerialEntryComboBox.Focused && !e.KeyChar.Equals((char)Keys.Enter))
                 {
                     PSSerialEntryComboBox.Focus();
                     PSSerialEntryComboBox.Text = e.KeyChar.ToString();
@@ -673,10 +738,30 @@ namespace ProcedureSearch
                     return;
                 }
                 // press enter on ']' key, used for barcode scanners
-                if (e.KeyChar == ']')
+                if (e.KeyChar.Equals(']'))
                 {
                     e.KeyChar = (char)Keys.None;
                     PSSearchButton.PerformClick();
+                    return;
+                }
+            }
+
+            if (tabControl.SelectedTab.Text.Equals("Product Code Search"))
+            {
+                // call open button click when enter is pressed in listbox
+                if (CodeEntryComboBox.Focused && e.KeyChar.Equals((char)Keys.Enter))
+                {
+                    CodeSearchButton.PerformClick();
+                    e.Handled = true;
+                    return;
+                }
+                // if any key besides enter is pressed and the combobox isnt focused, put that char into the combobox and focus to it
+                if (!CodeEntryComboBox.Focused && !e.KeyChar.Equals((char)Keys.Enter))
+                {
+                    CodeEntryComboBox.Focus();
+                    CodeEntryComboBox.Text = e.KeyChar.ToString();
+                    CodeEntryComboBox.SelectionStart = CodeEntryComboBox.Text.Length;
+                    e.Handled = true;
                     return;
                 }
             }
@@ -822,6 +907,13 @@ namespace ProcedureSearch
             PSSerialEntryComboBox.SelectionStart = currPos;
         }
 
+        private void CodeEntryComboBox_TextChanged(object sender, EventArgs e)
+        {
+            var currPos = CodeEntryComboBox.SelectionStart;
+            CodeEntryComboBox.Text = CodeEntryComboBox.Text.ToUpper();
+            CodeEntryComboBox.SelectionStart = currPos;
+        }
+
         private void PSSearchButton_Click(object sender, EventArgs e)
         {
             if (PSBWorker.IsBusy) return;
@@ -889,5 +981,55 @@ namespace ProcedureSearch
         {
             Logger.Log("Program exited.", rt, true);
         }
+
+        private void TabControl_Click(object sender, EventArgs e)
+        {
+            if (tabControl.SelectedTab.Text.Equals("Test Procedures"))
+            {
+                TPSerialEntryComboBox.Focus();
+            }
+            else if (tabControl.SelectedTab.Text.Equals("Process Sheets"))
+            {
+                PSSerialEntryComboBox.Focus();
+            }
+            else
+            {
+                CodeEntryComboBox.Focus();
+            }
+        }
+
+        private void CodeSearchButton_click(object sender, EventArgs e)
+        {
+            CodeProductTextBox.Clear();
+            CodeTextbox.Clear();
+            Regex rx = new Regex("[^a-zA-Z0-9-]");
+            CodeEntryComboBox.Text = rx.Replace(CodeEntryComboBox.Text, "");
+            var Serial = CodeEntryComboBox.Text;
+
+            if (Serial.Length < 3 || (Serial.Contains('-') && Serial.Length < 9))
+            {
+                Logger.Log($"Invalid serial number or product entered.", rt, true);
+                return;
+            }
+
+            if (!CodeEntryComboBox.Items.Contains(CodeEntryComboBox.Text))
+            {
+                CodeEntryComboBox.Items.Insert(0, CodeEntryComboBox.Text);
+            }
+
+            var ProdutCode = QueryIidDatabase(Serial.ToUpper(), 1);
+
+            CodeProductTextBox.Text = Serial;
+            CodeTextbox.Text = ProdutCode.ToUpper();
+            CodeEntryComboBox.SelectAll();
+
+            if (ProdutCode == "")
+            {
+                Logger.Log($"Could not find product code for {Serial}.", rt, true);
+                return;
+            }
+
+            Logger.Log($"Found product code for {Serial}.", rt, true);
+        }        
     }
 }
