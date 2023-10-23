@@ -1,13 +1,13 @@
 ﻿using System;
+using System.Configuration;
 using System.Drawing;
 using System.IO;
 using System.Windows.Forms;
-using System.Configuration;
 
 namespace ProcedureSearch
 {
     public static class Logger
-    {   
+    {
         /// <summary>
         /// Write a message to the status log textbox, with default black foreground text color.
         /// </summary>
@@ -17,15 +17,14 @@ namespace ProcedureSearch
         public static void Log(string message, RichTextBox box, bool writeToFile)
         {
             string LOGFILE_PATH = ConfigurationManager.AppSettings["LOGFILE_PATH"];
-            var date = $"{DateTime.Now.ToShortDateString()}";
-            var time = $"{DateTime.Now:hh:mm:sstt}";
-            var datetime = date + " " + time;
             if (string.IsNullOrEmpty(box.Text))
             {
                 box.AppendText(message, Color.Black);
             }
             else
+            {
                 box.AppendText(Environment.NewLine + message, Color.Black);
+            }
 
             if (writeToFile && File.Exists(LOGFILE_PATH))
             {
@@ -59,13 +58,15 @@ namespace ProcedureSearch
         public static void Log(string message, RichTextBox box, Color color, bool writeToFile)
         {
             string LOGFILE_PATH = ConfigurationManager.AppSettings["LOGFILE_PATH"];
-            
+
             if (string.IsNullOrEmpty(box.Text))
             {
                 box.AppendText(message, color);
             }
             else
+            {
                 box.AppendText(Environment.NewLine + message, color);
+            }
 
             if (writeToFile && File.Exists(LOGFILE_PATH))
             {
